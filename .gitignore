@@ -1,0 +1,4 @@
+.DS_Store
+.vscode
+dashboard/node_modules
+*.pyc
