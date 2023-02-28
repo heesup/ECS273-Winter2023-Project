@@ -28,12 +28,13 @@ if __name__ == "__main__":
     
     
     if 0:
-        csv_list = ["2022-10-01.csv", "2022-11-01.csv","2022-12-01.csv"]
+        #csv_list = ["2022-10-01.csv", "2022-11-01.csv","2022-12-01.csv"]
+        csv_list = ["../Dataset/data_Q1_2020/2020-01-01.csv", "../Dataset/data_Q1_2021/2021-01-01.csv", "../Dataset/data_Q1_2022/2022-01-01.csv"]
     elif 0:
         data_root = "../Dataset/data_Q4_2022"
         csv_list = [os.path.join(data_root,x) for x in get_filelist(data_root) if 'csv' in x]
     else:
-        data_root = "../Dataset/data"
+        data_root = "../Dataset"
         quarters = ["Q1","Q2","Q3","Q4"]
         years = ["2020","2021","2022"]
         csv_list = []
@@ -82,4 +83,4 @@ if __name__ == "__main__":
             # print(alive_records.head())
 
     final_df = pd.concat([failure_records, alive_records])
-    final_df.to_csv('../Dataset/out.csv')  
+    final_df.to_csv('out.csv')  
