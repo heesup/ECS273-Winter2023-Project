@@ -26,18 +26,29 @@ def compare_df(prev_df, next_df):
 
 if __name__ == "__main__":
     
-    data_root = "../Dataset/data_Q4_2022"
+    
     if 0:
         csv_list = ["2022-10-01.csv", "2022-11-01.csv","2022-12-01.csv"]
+    elif 0:
+        data_root = "../Dataset/data_Q4_2022"
+        csv_list = [os.path.join(data_root,x) for x in get_filelist(data_root) if 'csv' in x]
     else:
-        csv_list = [x for x in get_filelist(data_root) if 'csv' in x]
+        data_root = "../Dataset/data"
+        quarters = ["Q1","Q2","Q3","Q4"]
+        years = ["2020","2021","2022"]
+        csv_list = []
+        for year in years:
+            for quarter in quarters:
+                data_root = os.path.join("../Dataset",f"data_{quarter}_{year}")
+                csv_list += [os.path.join(data_root,x) for x in get_filelist(data_root) if 'csv' in x]
+        print(len(csv_list))
 
     prev = []
     failure_records = pd.DataFrame()
-    alive_records = []
-    for i, csv_file in enumerate(tqdm(csv_list)):
-        csv_path = os.path.join(data_root, csv_file)
-        date = csv_file.split(".")[0]
+    alive_records = pd.DataFrame()
+    
+    for i, csv_path in enumerate(tqdm(csv_list)):
+        date = csv_path.split("/")[-1].split(".")[0]
         df = pd.read_csv(csv_path)
         df = df.fillna(0)
         
