@@ -22,8 +22,8 @@ export default {
     <v-col cols="7">
       <v-row no-gutters>
         <v-col cols="7">
-          <!-- <ScatterPlotView/> -->
-          <img src="./components/ScatterPlotView.png" height="300">
+          <ScatterPlotView/>
+          <!-- <img src="./components/ScatterPlotView.png" height="300"> -->
         </v-col>
         
         <v-col cols="3">
