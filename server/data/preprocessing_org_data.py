@@ -2,6 +2,7 @@ from csv import writer
 from csv import reader
 new_column_text = 'Something text'
 
+
 def get_MFG_vale(model):
     # CT - Crucial Technology but also Micron Technology 
     # MT - Micron Technology
@@ -37,5 +38,5 @@ with open('data_Q1234_20_21_22.csv', 'r') as read_object, \
         else:
             mfg_org = row[3]
             row.append( get_MFG_vale(mfg_org) )
-            csv_writer.writerow(row)
+        csv_writer.writerow(row)
         cnt = cnt + 1
