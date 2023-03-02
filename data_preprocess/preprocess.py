@@ -29,26 +29,30 @@ if __name__ == "__main__":
     
     if 0:
         #csv_list = ["2022-10-01.csv", "2022-11-01.csv","2022-12-01.csv"]
-        csv_list = ["../Dataset/data_Q1_2020/2020-01-01.csv", "../Dataset/data_Q1_2021/2021-01-01.csv", "../Dataset/data_Q1_2022/2022-01-01.csv"]
+        total_csv_list = ["../Dataset/data_Q1_2020/2020-01-01.csv", "../Dataset/data_Q1_2021/2021-01-01.csv", "../Dataset/data_Q1_2022/2022-01-01.csv"]
     elif 0:
         data_root = "../Dataset/data_Q4_2022"
-        csv_list = [os.path.join(data_root,x) for x in get_filelist(data_root) if 'csv' in x]
+        total_csv_list = [os.path.join(data_root,x) for x in get_filelist(data_root) if 'csv' in x]
     else:
         data_root = "../Dataset"
         quarters = ["Q1","Q2","Q3","Q4"]
         years = ["2020","2021","2022"]
-        csv_list = []
+        total_csv_list = []
         for year in years:
             for quarter in quarters:
                 data_root = os.path.join("../Dataset",f"data_{quarter}_{year}")
-                csv_list += [os.path.join(data_root,x) for x in get_filelist(data_root) if 'csv' in x]
-        print(len(csv_list))
+                
+                csv_list = [os.path.join(data_root,x) for x in get_filelist(data_root) if 'csv' in x]
+                csv_list.sort()
+                total_csv_list += csv_list
+
+        print(total_csv_list)
 
     prev = []
     failure_records = pd.DataFrame()
     alive_records = pd.DataFrame()
     
-    for i, csv_path in enumerate(tqdm(csv_list)):
+    for i, csv_path in enumerate(tqdm(total_csv_list)):
         date = csv_path.split("/")[-1].split(".")[0]
         df = pd.read_csv(csv_path)
         df = df.fillna(0)
@@ -74,7 +78,7 @@ if __name__ == "__main__":
         prev = df
 
         # If last file
-        if i == len(csv_list)-1:
+        if i == len(total_csv_list)-1:
             failed_disks = df.loc[df["failure"] == 1]
             failure_records = pd.concat([failure_records,failed_disks])
 
