@@ -23,7 +23,11 @@ def fetchExample():
         points, cluster_names = processExample(method)
         resp = jsonify(data=points, clusters=cluster_names)
         return resp
-
+    
+@app.route("/fetchData", methods=["GET", "POST"])
+@cross_origin()
+def fetchData():
+    return "<p>Hello, World!</p>"
 
 if __name__ == "__main__":
     app.run(port=3100, debug=True)

@@ -42,81 +42,100 @@ export default {
     },
     methods: {
         onResize() {  // record the updated size of the target element
-            let target = this.$refs.scatterContainer as HTMLElement
+            let target = this.$refs.barContainer as HTMLElement
             if (target === undefined) return;
             this.size = { width: target.clientWidth, height: target.clientHeight };
         },
         initChart() {
-            // select the svg tag so that we can insert(render) elements, i.e., draw the chart, within it.
-            let chartContainer = d3.select('#bar-svg')
+            var svgHeight = 200
+            var barElements;
+            var dataSet = [120, 70, 175, 80, 220];
 
-            // we need compute the [min, max] from the data values of the attributes that will be used to represent x- and y-axis.
-            let xExtents = d3.extent(this.points.map((d: ScatterPoint) => d.posX as number)) as [number, number]
-            let yExtents = d3.extent(this.points.map((d: ScatterPoint) => d.posY as number)) as [number, number]
 
-            // We need a way to map our data to where it should be rendered within the svg (in pixels) based on the data value, 
-            //      so the extents above help us define the limits.
-            // Scales are just like mapping functions y = f(x), where x refers to domain, y refers to range in this case.
-            // We have the margin here just to leave some space
-            // In viewport (our screen), the leftmost side always refer to 0 in the horizontal coordinates in pixels (x). 
-            let xScale = d3.scaleLinear()
-                .range([this.margin.left, this.size.width - this.margin.right]) // left side to the right side on the screen
-                .domain(xExtents)
+            // var offset 만들기
+            var offsetX = 40;
+            var offsetY = 10;
 
-            // In viewport (our screen), the topmost side always refer to 0 in the vertical coordinates in pixels (y). 
-            let yScale = d3.scaleLinear()
-                .range([this.size.height - this.margin.bottom, this.margin.top]) //bottom side to the top side on the screen
-                .domain(yExtents)
-            // There are other scales such as scaleOrdinal and scaleBand, 
-                // whichever is appropriate depends on the data types and the kind of visualizations you're creating.
 
-            /*
-            // This following part visualizes the axes. We did not do it because the x- and y- axis in DR projections usually mean nothing for interpretation.
-            // Check out https://observablehq.com/@d3/margin-convention?collection=@d3/d3-axis
-            // Note that for axis labels, this is just a demostration, their positions are not perfect.
-            const xAxis = chartContainer.append('g')
-                .attr('transform', `translate(0, ${this.size.height - this.margin.bottom})`)
-                .call(d3.axisBottom(xScale))
+            // range limit 정의
+            var y_range_limit = 300;
 
-            const yAxis = chartContainer.append('g')
-                .attr('transform', `translate(${this.margin.left}, 0)`)
-                .call(d3.axisLeft(yScale))
+            var interval = 5;
 
-            const yLabel = chartContainer.append('g')
-                .attr('transform', `translate(${this.margin.left}, ${this.size.height / 2 + this.margin.top}) rotate(-90)`)
-                .append('text')
-                .text('PC2')
+            //그래프에 눈금 표시
+            var y = d3.scaleLinear() // 눈금의 종류를 지정
+                .range([y_range_limit, 0]) // 세로형 막대그래프는 range() 반대
+                .domain([0, 300])
 
-            const xLabel = chartContainer.append('g')
-                .attr('transform', `translate(${this.size.width / 2}, ${this.size.height - this.margin.top})`)
-                .append('text')
-                .text('PC1')
-            */
+            var yScale = d3.axisLeft(y)
+                .tickValues(d3.range(0, 301, 50))
+                .tickFormat(function (d) { return " $" + d })
 
-            // Similar to above but now we are creating the color scale with scaleOrdinal.
-            let clusters: string[] = this.clusters.map((cluster: string, idx: number) => String(idx))
-            let colorScale = d3.scaleOrdinal().domain(clusters).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
+            d3.select("#bar-svg").append("g") // 눈금은 g 요소를 사용하여 그룹
+                .attr("class", "axis")  // axis 라는 class 이름 지정
+                // 중요 !! transform 변경
+                //.attr("transform", "translate(40, 0)")  // 눈금 표시위치 transform 으로 조정
+                .attr("transform", "translate(" + offsetX + ", " + ((svgHeight - y_range_limit) - offsetY) + ")")  // 눈금 표시위치 transform 으로 조정
+                // == ("transform"), "translate(40,-70)"
+                .call(yScale)
 
-            // "g" is group element that does nothing but helps avoid DOM looking like a mess
-            // We iterate through each <ScatterPoint> element in the array, create a circle for each and indicate the coordinates, the circle size, the color, and the opacity.
-            const points = chartContainer.append('g')
-                .selectAll('circle') //adding circles
-                .data<ScatterPoint>(this.points) // TypeScript expression
-                .join('circle')
-                .attr('cx', (d: ScatterPoint) => xScale(d.posX))
-                .attr('cy', (d: ScatterPoint) => yScale(d.posY))
-                .attr('r', 5)
-                .style('fill', (d: ScatterPoint) => colorScale(String(d.cluster)) as string)
-                .style('opacity', .7)
+            //그래프 그리기
+            barElements = d3.select("#bar-svg")
+                .selectAll("rect")
+                .data(dataSet)
 
-            // For transform, check out https://www.tutorialspoint.com/d3js/d3js_svg_transformation.htm, but essentially we are adjusting the positions of the selected elements.
-            const title = chartContainer.append('g')
-                .append('text') // adding the text
-                .attr('transform', `translate(${this.size.width / 2}, ${this.size.height - this.margin.top})`)
-                .attr('dy', '0.5rem') // relative distance from the indicated coordinates.
-                .style('text-anchor', 'middle')
-                .style('font-weight', 'bold')
-                .text('Wine Dataset PCA Projection') // text content
+            barElements.enter()
+                .append("rect")
+                .attr("class", "bar")
+                .attr("height", function (d) {
+                    return d;
+                })
+                .attr("width", 20)
+                .attr("x", function (d, i) {
+                    return i * 30 + interval + offsetX; //updated offsetX
+                })
+                .attr("y", function (d) {
+                    return svgHeight - d - offsetY; //updated offsetY
+                })
+            //        .exit()
+
+            let textElements = d3.select("#bar-svg")
+                .selectAll("#barNum")
+                .data(dataSet)
+
+            textElements.enter()
+                .append("text")
+                .attr("class", "barNum")
+                .attr("x", function (d, i) {
+                    return i * 30 + 10 + interval + offsetX;    // 막대그래프 표시간격 맞춤 // updated offsetX
+                })
+                .attr("y", svgHeight - 5 - offsetY) //updated offsetY
+                .text(function (d, i) {
+                    return d;
+                })
+            //        .exit()
+
+            //가로방향 선을 표시
+            d3.select("#bar-svg").append("rect")
+                .attr("class", "axis_x")
+                .attr("width", 320)
+                .attr("height", 1)
+                .attr("transform", "translate(" + offsetX + ", " + ((svgHeight) - offsetY) + ")")
+
+            var xElements = d3.select("#bar-svg")
+                .selectAll("#barName")
+                .data(dataSet)
+                
+            xElements.enter()
+                .append("text")
+                .attr("class", "barName")
+                .attr("x", function (d, i) {
+                    return i * 30 + 10 + interval + offsetX
+                })
+                .attr("y", svgHeight + 15 - offsetY)
+                .text(function (d, i) {
+                    return ["A", "B", "C", "D", "E"][i];
+                })
         },
     },
     watch: {
@@ -141,7 +160,7 @@ export default {
 <!-- "ref" registers a reference to the HTML element so that we can access it via the reference in Vue.  -->
 <!-- We use flex to arrange the layout-->
 <template>
-    <div class="chart-container d-flex" ref="scatterContainer">
+    <div class="chart-container d-flex" ref="barContainer">
         <svg id="bar-svg" width="100%" height="100%">
             <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
         </svg>

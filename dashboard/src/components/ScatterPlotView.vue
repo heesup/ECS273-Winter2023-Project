@@ -76,7 +76,30 @@ export default {
                 .attr('dy', '0.5rem')
                 .style('text-anchor', 'middle')
                 .style('font-weight', 'bold')
-                .text('Wine Dataset PCA Projection')
+                .text('HDD SMART PCA Projection')
+
+
+             // This following part visualizes the axes. We did not do it because the x- and y- axis in DR projections usually mean nothing for interpretation.
+            // Check out https://observablehq.com/@d3/margin-convention?collection=@d3/d3-axis
+            // Note that for axis labels, this is just a demostration, their positions are not perfect.
+            const xAxis = chartContainer.append('g')
+                .attr('transform', `translate(0, ${this.size.height - this.margin.bottom})`)
+                .call(d3.axisBottom(xScale))
+
+            const yAxis = chartContainer.append('g')
+                .attr('transform', `translate(${this.margin.left}, 0)`)
+                .call(d3.axisLeft(yScale))
+
+            const yLabel = chartContainer.append('g')
+                .attr('transform', `translate(${this.margin.left}, ${this.size.height / 2 + this.margin.top}) rotate(-90)`)
+                .append('text')
+                .text('PC2')
+
+            const xLabel = chartContainer.append('g')
+                .attr('transform', `translate(${this.size.width / 2}, ${this.size.height - this.margin.top})`)
+                .append('text')
+                .text('PC1')
+            
         },
         initLegend() {
             let legendContainer = d3.select('#scatter-legend-svg')
@@ -144,7 +167,7 @@ export default {
                 .style('font-size', '.7rem')
                 .style('text-anchor', 'start')
                 .style('font-weight', 'bold')
-                .text('Cultivars')
+                .text('HDD State')
                 .attr('x', 5)
                 .attr('dy', '0.7rem')
         }

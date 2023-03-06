@@ -64,7 +64,7 @@ if __name__ == "__main__":
             deleted, stay, new  = compare_df(prev, df)
 
             # Add failure records
-            deleted_disks = prev.loc[prev["serial_number"].isin(deleted)]
+            # deleted_disks = prev.loc[prev["serial_number"].isin(deleted)]
             #print(deleted_disks.head())
             #print(deleted_disks["failure"])
 
@@ -74,6 +74,9 @@ if __name__ == "__main__":
 
             failure_records = pd.concat([failure_records,failed_disks])
 
+
+            # alive_records = pd.concat([alive_records,new])
+            
         # Update prev
         prev = df
 

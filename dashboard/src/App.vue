@@ -19,29 +19,30 @@ export default {
 <template>
   <v-container id="main-container" class="d-flex flex-column flex-nowrap" fluid>
   <v-row>
-    <v-col cols="7">
+    <v-col cols="">
       <v-row no-gutters>
-        <v-col cols="7">
+        <v-col cols="">
           <ScatterPlotView/>
           <!-- <img src="./components/ScatterPlotView.png" height="300"> -->
         </v-col>
         
-        <v-col cols="3">
-          <!-- <BarPlotView/> -->
-          <img src="./components/BarPlotView.png" height="300">
+        <v-col cols="">
+          <BarPlotView/>
+          <!-- <img src="./components/BarPlotView.png" height="300"> -->
         </v-col>
       </v-row>
       
-      <v-row no-gutters>
+      <v-row>
         <v-col>
           <!-- <Notes msg="This message is showcasing how to pass down the props"/> -->
           <!-- <ParallelPlotView/> -->
-          <img src="./components/ParallelPlotView.png" width="730">
+          <img src="./components/ParallelPlotView.png" width="600">
         </v-col>
       </v-row>
+      
     </v-col>
     
-    <v-col cols="3">
+    <v-col cols="">
       <v-row no-gutters>
         <v-col>
           <!-- <SimulationView/> -->
@@ -49,7 +50,6 @@ export default {
         </v-col>
       </v-row>
     </v-col>
-
   </v-row>
   
 
