@@ -2,3 +2,4 @@
 .vscode
 dashboard/node_modules
 *.pyc
+*.csv

@@ -1,149 +1,227 @@
 <script lang="ts">
 import * as d3 from "d3";
 import axios from 'axios';
-import { isEmpty, debounce } from 'lodash';
+import { isEmpty, debounce, fill, size } from 'lodash';
 import { server } from '../helper';
 
-import { Point, ComponentSize, Margin } from '../types';
+import { Point, BarPoint, ComponentSize, Margin } from '../types';
 // A "extends" B means A inherits the properties and methods from B.
 interface ScatterPoint extends Point{ 
     cluster: string;
 }
 
+
 // Computed property: https://vuejs.org/guide/essentials/computed.html
 // Lifecycle in vue.js: https://vuejs.org/guide/essentials/lifecycle.html#lifecycle-diagram
+import { mapState, storeToRefs } from 'pinia'; 
+import { useExampleStore } from '../stores/BarChartStore';
 
 export default {
-    data() {
-        // Here we define the local states of this component. If you think the component as a class, then these are like its private variables.
+    setup() { // Composition API syntax
+        const store = useExampleStore()
+        // Alternative expression from computed
+        const { resize } = storeToRefs(store);
         return {
-            points: [] as ScatterPoint[], // "as <Type>" is a TypeScript expression to indicate what data structures this variable is supposed to store.
-            clusters: [] as string[],
-            size: { width: 0, height: 0 } as ComponentSize,
-            margin: {left: 20, right: 20, top: 20, bottom: 40} as Margin,
+            store, // Return store as the local state, but when you update the property value, the store is also updated.
+            resize,
         }
     },
     computed: {
-        // Re-render the chart whenever the window is resized or the data changes (and data is non-empty)
-        rerender() {
-            return (!isEmpty(this.points)) && this.size
-        }
+        ...mapState(useExampleStore, ['selectedMethod']) // Traditional way to map the store state to the local state
     },
     created() {
-        // fetch the data via API request when we init this component. This will only get called once.
-        // In axios anything we send back in the response are always bound to the "data" property.
-        axios.get(`${server}/fetchExample`)
-            .then(resp => { // check out the app.py in ./server/ to see the format
-                this.points = resp.data.data; 
-                this.clusters = resp.data.clusters;
-                return true;
-            })
-            .catch(error => console.log(error));
+        this.store.fetchExample(this.selectedMethod);
     },
     methods: {
         onResize() {  // record the updated size of the target element
             let target = this.$refs.barContainer as HTMLElement
             if (target === undefined) return;
-            this.size = { width: target.clientWidth, height: target.clientHeight };
+            this.store.size = { width: target.clientWidth, height: target.clientHeight }; // How you update the store
         },
         initChart() {
-            var svgHeight = 200
-            var barElements;
-            var dataSet = [120, 70, 175, 80, 220];
 
+            let chartContainer = d3.select('#bar-svg')
+
+
+            let clusters: string[] = this.store.clusters.map((cluster: string, idx: number) => String(idx))
+            let colorScale = d3.scaleOrdinal().domain(clusters).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
+            
+            var svgHeight = this.store.size.height;
+            var dataSet = this.store.points;
 
             // var offset 만들기
-            var offsetX = 40;
-            var offsetY = 10;
-
+            var offsetX = this.store.margin.left;
+            var offsetY = this.store.margin.top;
+            var bottom = this.store.margin.bottom;
+            
+            let xExtents = d3.extent(this.store.clusters.map((d: Object,i) => i as number)) as [number, number]
+            let xScale = d3.scaleLinear()
+                .range([this.store.margin.left, this.store.size.width - this.store.margin.right])
+                .domain(xExtents)
+            // console.log(type
+            // let xExtents = d3.extent(this.store.clusters.map((d: Object,i) => d as String)) as [String, String]
+            // let xScale = d3.scaleBand()
+            //     .range([this.store.margin.left, this.store.size.width - this.store.margin.right])
+            //     .domain(xExtents)
 
             // range limit 정의
-            var y_range_limit = 300;
-
             var interval = 5;
+            console.log(this.store.size.height)
+            let yExtents = d3.extent(this.store.points.map((d: BarPoint) => d.value as number)) as [number, number]
+            let yScale = d3.scaleLinear()
+                .range([this.store.size.height - this.store.margin.bottom, this.store.margin.top])
+                .domain(yExtents)
 
-            //그래프에 눈금 표시
-            var y = d3.scaleLinear() // 눈금의 종류를 지정
-                .range([y_range_limit, 0]) // 세로형 막대그래프는 range() 반대
-                .domain([0, 300])
-
-            var yScale = d3.axisLeft(y)
-                .tickValues(d3.range(0, 301, 50))
-                .tickFormat(function (d) { return " $" + d })
-
-            d3.select("#bar-svg").append("g") // 눈금은 g 요소를 사용하여 그룹
-                .attr("class", "axis")  // axis 라는 class 이름 지정
-                // 중요 !! transform 변경
-                //.attr("transform", "translate(40, 0)")  // 눈금 표시위치 transform 으로 조정
-                .attr("transform", "translate(" + offsetX + ", " + ((svgHeight - y_range_limit) - offsetY) + ")")  // 눈금 표시위치 transform 으로 조정
-                // == ("transform"), "translate(40,-70)"
-                .call(yScale)
+            const yAxis = chartContainer.append('g')
+                .attr('transform', `translate(${offsetX}, ${0})`)
+                .call(d3.axisLeft(yScale))
 
             //그래프 그리기
-            barElements = d3.select("#bar-svg")
+            var barElements = chartContainer
                 .selectAll("rect")
                 .data(dataSet)
 
-            barElements.enter()
-                .append("rect")
+            // barElements.enter()
+            //     .append("rect")
+            //     .attr("class", "bar")
+            //     .attr("height", function (d:BarPoint) {
+            //         //console.log(d.value)
+            //         //return d.value;
+            //         return svgHeight  - yScale(d.value)
+            //     })
+            //     .attr("width", 5)
+            //     .attr("x", function (d, i) {
+            //         return i * 6 + interval + offsetX; //updated offsetX
+            //     })
+            //     .attr("y", function (d) {
+            //         return svgHeight - d.value - offsetY; //updated offsetY
+            //     })
+            //     .attr("fill","orange")
+            // //        .exit()
+
+            const points = chartContainer.append('g')
+                .selectAll(".bar")
+                .data(this.store.points)
+                .enter().append("rect")
                 .attr("class", "bar")
-                .attr("height", function (d) {
-                    return d;
-                })
-                .attr("width", 20)
+                // .attr("x", function (d, i) {
+                //     return i * 6 + interval + offsetX; //updated offsetX
+                // })
                 .attr("x", function (d, i) {
-                    return i * 30 + interval + offsetX; //updated offsetX
+                    return xScale(i); //updated offsetX
                 })
-                .attr("y", function (d) {
-                    return svgHeight - d - offsetY; //updated offsetY
-                })
-            //        .exit()
+                .attr("y", d => yScale(d.value))
+                .attr("width", this.store.size.width/(size(this.store.points)+10))
+                .attr("height", d => this.store.size.height - this.store.margin.bottom - yScale(d.value))
+                .style("fill", (d: BarPoint, i:number) => colorScale(String(this.store.clusters[i][0])) as string)
+                .style('opacity', .5)
 
             let textElements = d3.select("#bar-svg")
                 .selectAll("#barNum")
-                .data(dataSet)
+                .data(this.store.clusters)
 
             textElements.enter()
                 .append("text")
                 .attr("class", "barNum")
                 .attr("x", function (d, i) {
-                    return i * 30 + 10 + interval + offsetX;    // 막대그래프 표시간격 맞춤 // updated offsetX
+                    return i * 6 + 10 + interval + offsetX;    // 막대그래프 표시간격 맞춤 // updated offsetX
                 })
-                .attr("y", svgHeight - 5 - offsetY) //updated offsetY
+                .attr("y", svgHeight - 5) //updated offsetY
                 .text(function (d, i) {
-                    return d;
+                    return d[0]+d[1];
                 })
-            //        .exit()
+                .style('font-size', '.5rem')
+                .style('text-anchor', 'start')
+                .exit()
 
             //가로방향 선을 표시
-            d3.select("#bar-svg").append("rect")
-                .attr("class", "axis_x")
-                .attr("width", 320)
-                .attr("height", 1)
-                .attr("transform", "translate(" + offsetX + ", " + ((svgHeight) - offsetY) + ")")
+
+            // d3.select("#bar-svg").append("rect")
+            //     .attr("class", "axis_x")
+            //     .attr("width", 320)
+            //     .attr("height", 1)
+            //     .attr("transform", "translate(" + offsetX + ", " + ((svgHeight) - offsetY) + ")")
+
+            const xAxis = chartContainer.append('g')
+                .attr('transform', `translate(0, ${this.store.size.height - this.store.margin.bottom})`)
+                .call(d3.axisBottom(xScale))
 
             var xElements = d3.select("#bar-svg")
                 .selectAll("#barName")
                 .data(dataSet)
                 
-            xElements.enter()
-                .append("text")
-                .attr("class", "barName")
-                .attr("x", function (d, i) {
-                    return i * 30 + 10 + interval + offsetX
-                })
-                .attr("y", svgHeight + 15 - offsetY)
-                .text(function (d, i) {
-                    return ["A", "B", "C", "D", "E"][i];
-                })
+            // xElements.enter()
+            //     .append("text")
+            //     .attr("class", "barName")
+            //     .attr("x", function (d, i) {
+            //         return i * 30 + 10 + interval + offsetX
+            //     })
+            //     .attr("y", svgHeight + 15 - offsetY)
+            //     .text(function (d, i) {
+            //         return ["A", "B", "C", "D", "E"][i];
+            //     })
         },
+        initLegend() {
+            let legendContainer = d3.select('#bar-legend-svg')
+
+            let clusterLabels: string[] = this.store.clusters.map((cluster: string, idx: number) => `Cultivar ${idx+1}`)
+            let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
+
+            const rectSize = 12;
+            const titleHeight = 20;
+
+            const legendGroups = legendContainer.append('g')
+                .attr('transform', `translate(0, ${titleHeight})`)
+                .selectAll('g')
+                .data<string>(clusterLabels)
+                .join((enter) => {
+                    let select = enter.append('g');
+
+                    select.append('rect')
+                        .attr('width', rectSize).attr('height', rectSize)
+                        .attr('x', 5).attr('y', (d: string, idx: number) => idx * rectSize * 1.5)
+                        .style('fill', (d: string) => colorScale(d) as string)
+
+                    select.append('text')
+                        .text((d: string) => d)
+                        .style('font-size', '.7rem')
+                        .style('text-anchor', 'start')
+                        .attr('x', rectSize)
+                        .attr('y', (d: string, idx: number) => idx * rectSize * 1.5)
+                        .attr('dx', '0.7rem')
+                        .attr('dy', '0.7rem')
+                    return select
+                })
+
+            // const title = legendContainer
+            //     .append('text')
+            //     .style('font-size', '.7rem')
+            //     .style('text-anchor', 'start')
+            //     .style('font-weight', 'bold')
+            //     .text('Cultivars')
+            //     .attr('x', 5)
+            //     .attr('dy', '0.7rem')
+        },
+        rerender() {
+            d3.select('#bar-svg').selectAll('*').remove() // Clean all the elements in the chart
+            d3.select('#bar-legend-svg').selectAll('*').remove()
+            this.initChart()
+            //this.initLegend()
+        }
     },
     watch: {
-        rerender(newSize) {
-            if (!isEmpty(newSize)) {
-                d3.select('#bar-svg').selectAll('*').remove() // Clean all the elements in the chart
-                this.initChart()
+        resize(newSize) { // when window resizes
+            if ((newSize.width !== 0) && (newSize.height !== 0)) {
+                this.rerender()
             }
+        },
+        'store.points'(newPoints) { // when data changes
+            if (!isEmpty(newPoints)) {
+                this.rerender()
+            }
+        },
+        selectedMethod(newMethod) { // function triggered when a different method is selected via dropdown menu
+            this.store.fetchExample(newMethod)
         }
     },
     // The following are general setup for resize events.
@@ -160,15 +238,79 @@ export default {
 <!-- "ref" registers a reference to the HTML element so that we can access it via the reference in Vue.  -->
 <!-- We use flex to arrange the layout-->
 <template>
-    <div class="chart-container d-flex" ref="barContainer">
-        <svg id="bar-svg" width="100%" height="100%">
-            <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
-        </svg>
+    <div class="viz-container d-flex justify-end">
+        <div class="chart-container d-flex" ref="barContainer">
+            <svg id="bar-svg" width="100%" height="100%">
+                <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
+            </svg>
+        </div>
+        <div id="bar-control-container" class="d-flex">
+            <div class="d-flex mb-4">
+                <label :style="{ fontSize: '0.7rem'}"> Select <br> Attributes:
+                    <br>
+                    <select class="method-select" v-model="store.selectedMethod">
+                        <option v-for="method in store.methods" :value="method" 
+                        :selected="(method === store.selectedMethod)? true : false">{{method}}</option>
+                    </select>
+                </label>
+            </div>
+        </div>
     </div>
 </template>
 
 <style scoped>
+.viz-container{
+    height:100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    /* for debug */
+    border: 1px;
+    border-style: dashed;
+}
+
 .chart-container{
+    /* 자동 리사이즈  */
+    width: calc(100% - 5rem); 
     height: 100%;
+    /* for debug */
+    border: 1px;
+    border-style: dashed;
+}
+
+#bar-control-container{
+    width: 6rem;
+    flex-direction: column;
+}
+
+
+.barNum {
+  font-size: 9pt;
+  text-anchor : middle;
+}
+.axis text {
+  font-size: 11px;
+
+}
+.axis path,
+.axis line {
+  fill :none;
+  stroke : black;
+}
+
+.axis_x line {
+  fill : none;
+  stroke: black;
+}
+.barName {
+  font-size : 9pt;
+  text-anchor : middle;
+}
+.method-select{
+    outline: solid;
+    outline-width: 1px;
+    outline-color: lightgray;
+    border-radius: 2px;
+    width: 100%;
+    padding: 2px 5px;
 }
 </style>

@@ -18,31 +18,32 @@ export default {
 <!--This is using the grid component from Vuetify to do layout design-->
 <template>
   <v-container id="main-container" class="d-flex flex-column flex-nowrap" fluid>
-  <v-row>
+  <v-row no-gutters>
     <v-col cols="">
-      <v-row no-gutters>
-        <v-col cols="">
+      <!-- <v-row no-gutters> -->
+      <v-row style="height: 40vh" no-gutters>
+        <v-col cols="" offset="">
           <ScatterPlotView/>
           <!-- <img src="./components/ScatterPlotView.png" height="300"> -->
         </v-col>
         
-        <v-col cols="">
+        <v-col cols="" offset="">
           <BarPlotView/>
           <!-- <img src="./components/BarPlotView.png" height="300"> -->
         </v-col>
       </v-row>
-      
+
       <v-row>
-        <v-col>
+        <v-col offset="3">
           <!-- <Notes msg="This message is showcasing how to pass down the props"/> -->
           <!-- <ParallelPlotView/> -->
           <img src="./components/ParallelPlotView.png" width="600">
         </v-col>
       </v-row>
-      
+    
     </v-col>
     
-    <v-col cols="">
+    <v-col cols="" offset="3">
       <v-row no-gutters>
         <v-col>
           <!-- <SimulationView/> -->
@@ -50,6 +51,7 @@ export default {
         </v-col>
       </v-row>
     </v-col>
+
   </v-row>
   
 
