@@ -9,6 +9,15 @@ import { Point, ComponentSize, Margin } from '../types';
 interface ScatterPoint extends Point{ 
     cluster: string;
 }
+interface HDDFailure {
+// 'smart_5_normalized', 'smart_187_normalized', 'smart_188_normalized', 'smart_197_normalized', 'smart_198_normalized'
+    smart_5_normalized: number;
+    smart_187_normalized: number;
+    smart_188_normalized: number;
+    smart_197_normalized: number;
+    smart_198_normalized: number;
+    // MFG: string;
+}
 
 // Computed property: https://vuejs.org/guide/essentials/computed.html
 // Lifecycle in vue.js: https://vuejs.org/guide/essentials/lifecycle.html#lifecycle-diagram
@@ -19,6 +28,8 @@ export default {
         return {
             points: [] as ScatterPoint[], // "as <Type>" is a TypeScript expression to indicate what data structures this variable is supposed to store.
             clusters: [] as string[],
+            HDDFailure_data: [] as HDDFailure[],
+            columns: [] as string[],
             size: { width: 0, height: 0 } as ComponentSize,
             margin: {left: 20, right: 20, top: 20, bottom: 40} as Margin,
         }
@@ -26,16 +37,18 @@ export default {
     computed: {
         // Re-render the chart whenever the window is resized or the data changes (and data is non-empty)
         rerender() {
-            return (!isEmpty(this.points)) && this.size
+            return (!isEmpty(this.HDDFailure_data)) && this.size
         }
     },
     created() {
         // fetch the data via API request when we init this component. This will only get called once.
         // In axios anything we send back in the response are always bound to the "data" property.
-        axios.get(`${server}/fetchExample`)
+        axios.get(`${server}/fetchParallelData`)
             .then(resp => { // check out the app.py in ./server/ to see the format
-                this.points = resp.data.data; 
+                this.HDDFailure_data = resp.data.data; 
                 this.clusters = resp.data.clusters;
+                this.columns = resp.data.columns;
+
                 return true;
             })
             .catch(error => console.log(error));
@@ -47,83 +60,170 @@ export default {
             this.size = { width: target.clientWidth, height: target.clientHeight };
         },
         initChart() {
-            // select the svg tag so that we can insert(render) elements, i.e., draw the chart, within it.
-            let chartContainer = d3.select('#parallel-svg')
+            var margin = {top: 5, right: 5, bottom: 5, left: 5},
+                            width = this.size.width - margin.left - margin.right,
+                            height = this.size.height - margin.top - margin.bottom;
 
-            // we need compute the [min, max] from the data values of the attributes that will be used to represent x- and y-axis.
-            let xExtents = d3.extent(this.points.map((d: ScatterPoint) => d.posX as number)) as [number, number]
-            let yExtents = d3.extent(this.points.map((d: ScatterPoint) => d.posY as number)) as [number, number]
+            var svg = d3.select("#parallel-svg")
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
-            // We need a way to map our data to where it should be rendered within the svg (in pixels) based on the data value, 
-            //      so the extents above help us define the limits.
-            // Scales are just like mapping functions y = f(x), where x refers to domain, y refers to range in this case.
-            // We have the margin here just to leave some space
-            // In viewport (our screen), the leftmost side always refer to 0 in the horizontal coordinates in pixels (x). 
-            let xScale = d3.scaleLinear()
-                .range([this.margin.left, this.size.width - this.margin.right]) // left side to the right side on the screen
-                .domain(xExtents)
+            // let matrix_columns = ["Area", "AspectRation", "Compactness", "ConvexArea", "Class"];
+            let domain_org = this.columns;
 
-            // In viewport (our screen), the topmost side always refer to 0 in the vertical coordinates in pixels (y). 
-            let yScale = d3.scaleLinear()
-                .range([this.size.height - this.margin.bottom, this.margin.top]) //bottom side to the top side on the screen
-                .domain(yExtents)
-            // There are other scales such as scaleOrdinal and scaleBand, 
-                // whichever is appropriate depends on the data types and the kind of visualizations you're creating.
+            console.log(domain_org);
+            
+            // const domain_org = this.clusters;
+            // const domain_org: string[] = this.clusters;
+            const domains = d3.csvParse(domain_org.join(','));
+            // const domains = d3.csvParse(domain_org.join(','));
+            const domains_len = domains.length;
 
-            /*
-            // This following part visualizes the axes. We did not do it because the x- and y- axis in DR projections usually mean nothing for interpretation.
-            // Check out https://observablehq.com/@d3/margin-convention?collection=@d3/d3-axis
-            // Note that for axis labels, this is just a demostration, their positions are not perfect.
-            const xAxis = chartContainer.append('g')
-                .attr('transform', `translate(0, ${this.size.height - this.margin.bottom})`)
-                .call(d3.axisBottom(xScale))
+            const data = this.HDDFailure_data;
+            console.log(data);
 
-            const yAxis = chartContainer.append('g')
-                .attr('transform', `translate(${this.margin.left}, 0)`)
-                .call(d3.axisLeft(yScale))
+            let dimensions = domains['columns'].filter(function(d) { return d != "Class" })
+            // let dimensions = Object.keys(data[0]).filter(function(d) { return d != "Class" })
 
-            const yLabel = chartContainer.append('g')
-                .attr('transform', `translate(${this.margin.left}, ${this.size.height / 2 + this.margin.top}) rotate(-90)`)
-                .append('text')
-                .text('PC2')
+            // For each dimension, I build a linear scale. I store all in a y object
+            let y = {}
+            for (let i in domain_org) {
+                let name = dimensions[i]
+                y[name] = d3.scaleLinear()
+                    .domain( d3.extent(data, function(d) { return +d[name]; }) )
+                    .range([height, 0])
+            }
+            console.log(y)
 
-            const xLabel = chartContainer.append('g')
-                .attr('transform', `translate(${this.size.width / 2}, ${this.size.height - this.margin.top})`)
-                .append('text')
-                .text('PC1')
-            */
+            // Build the X scale -> it find the best position for each Y axis
+            let x = d3.scalePoint()
+                .range([0, width])
+                .padding(1)
+                .domain(dimensions);
 
-            // Similar to above but now we are creating the color scale with scaleOrdinal.
-            let clusters: string[] = this.clusters.map((cluster: string, idx: number) => String(idx))
-            let colorScale = d3.scaleOrdinal().domain(clusters).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
+            console.log(x);
+            console.log(dimensions)
 
-            // "g" is group element that does nothing but helps avoid DOM looking like a mess
-            // We iterate through each <ScatterPoint> element in the array, create a circle for each and indicate the coordinates, the circle size, the color, and the opacity.
-            const points = chartContainer.append('g')
-                .selectAll('circle') //adding circles
-                .data<ScatterPoint>(this.points) // TypeScript expression
-                .join('circle')
-                .attr('cx', (d: ScatterPoint) => xScale(d.posX))
-                .attr('cy', (d: ScatterPoint) => yScale(d.posY))
-                .attr('r', 5)
-                .style('fill', (d: ScatterPoint) => colorScale(String(d.cluster)) as string)
-                .style('opacity', .7)
+            const color = d3.scaleOrdinal()
+                .domain(dimensions)
+                .range(d3.schemeTableau10)
 
-            // For transform, check out https://www.tutorialspoint.com/d3js/d3js_svg_transformation.htm, but essentially we are adjusting the positions of the selected elements.
-            const title = chartContainer.append('g')
+            const highlight = function(event, d){
+                const selected_class = d.Class
+
+                // first every group turns grey
+                d3.selectAll(".line")
+                // Second the hovered specie takes its color
+                d3.selectAll("." + selected_class)
+                    .transition().duration(200)
+                    .style("stroke", color(selected_class))
+            }
+
+            // Unhighlight
+            const doNotHighlight = function(event, d){
+                d3.selectAll(".line")
+                    .transition().duration(200).delay(1000)
+                    .style("stroke", function(d){ return( color(d.Class))} )
+                    .style("opacity", "1")
+            }
+
+            // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
+            function path(d) {
+                return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
+            }
+
+            // Draw the lines
+            const paths = svg.selectAll("myPath")
+                .data(data)
+                .join("path")
+                    .attr("d", path)
+                    .attr("class", function (d) { return "line " + d.Class } )
+                    .attr("stroke-width", 0.3)
+                    .style("fill", "none")
+                    .style("stroke", function(d){ return( color(d.Class))} )
+                    .style("opacity", 0.3)
+                    .on("mouseover", highlight)
+                    .on("mouseleave", doNotHighlight )
+
+            // Draw the axis:
+            const Axis = svg.selectAll("myAxis")
+                .data(dimensions).enter()
+                .append("g")
+                .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+                .each(function(d) { d3.select(this).call(d3.axisLeft().scale(y[d])); })
+                .append("text")
+                    .style("font", "bold 12px sans-serif")
+                    .style("text-anchor", "middle")
+                    .attr("y", -9)
+                    .text(function(d) { return d; })
+                        .style("fill", "black")
+            
+            const title = svg.append('g')
                 .append('text') // adding the text
-                .attr('transform', `translate(${this.size.width / 2}, ${this.size.height - this.margin.top})`)
+                .attr('transform', `translate(${width / 2}, ${height+20})`)
                 .attr('dy', '0.5rem') // relative distance from the indicated coordinates.
+                .style("font", "bold 15px sans-serif")
                 .style('text-anchor', 'middle')
                 .style('font-weight', 'bold')
-                .text('Wine Dataset PCA Projection') // text content
+                .text('Dry bean - Parallel Coordinate') // tex
         },
-    },
+        initLegend() {
+            let legendContainer = d3.select('#parallel-legend-svg');
+
+            // let clusterLabels: string[] = this.clusters.map((cluster: string, idx: number) => `Cultivar ${idx+1}`)
+            let clusterLabels: string[] = this.clusters
+            let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
+
+            const rectSize = 12;
+            const titleHeight = 20;
+
+            // This is further utilizing data joins in d3.js, you can find the equivalent code in the comments below.
+            // Check out https://observablehq.com/@d3/selection-join
+            const legendGroups = legendContainer.append('g')
+                .attr('transform', `translate(0, ${titleHeight})`) // this is applied to "g" element and will affect all the child elements.
+                .selectAll('g')
+                .data<string>(clusterLabels)
+                .join((enter) => { // This enter syntax is recommended when you want to join multiple non-nested elements per data point
+                    // This callback here is for newly added elements.
+                    let select = enter.append('g');
+
+                    select.append('rect')
+                        .attr('width', rectSize).attr('height', rectSize)
+                        .attr('x', 5).attr('y', (d: string, idx: number) => idx * rectSize * 1.5)
+                        .style('fill', (d: string) => colorScale(d) as string)
+
+                    select.append('text')
+                        .text((d: string) => d)
+                        .style('font-size', '.7rem')
+                        .style('text-anchor', 'start')
+                        .attr('x', rectSize)
+                        .attr('y', (d: string, idx: number) => idx * rectSize * 1.5)
+                        .attr('dx', '0.7rem')
+                        .attr('dy', '0.7rem')
+                    return select
+                }, // you can add callbacks for updating elements and removing elements as other arguments here.
+            );
+            const title = legendContainer
+                .append('text')
+                .style('font-size', '.7rem')
+                .style('text-anchor', 'start')
+                .style('font-weight', 'bold')
+                .text('Bean Type')
+                .attr('x', 5)
+                .attr('dy', '0.7rem')
+
+        }
+    },    
     watch: {
         rerender(newSize) {
             if (!isEmpty(newSize)) {
-                d3.select('#parallel-svg').selectAll('*').remove() // Clean all the elements in the chart
+                d3.select('#parallel-svg').selectAll('*').remove()
+                d3.select('#parallel-legend-svg').selectAll('*').remove()
                 this.initChart()
+                this.initLegend()
             }
         }
     },
@@ -145,11 +245,26 @@ export default {
         <svg id="parallel-svg" width="100%" height="100%">
             <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
         </svg>
+        <div id="scatter-control-container" class="d-flex">
+            <svg id="parallel-legend-svg" width=100 height="40%">
+            </svg>
+        </div>
+
     </div>
 </template>
 
 <style scoped>
+.viz-container{
+    height:100%;
+    flex-direction: row;
+    flex-wrap: nowrap;
+}
 .chart-container{
+    width: calc(100% - 5rem);
     height: 100%;
+}
+
+#parallel-legend-container{
+    width: 5rem;
 }
 </style>
