@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
-from controller import processExample, processBarChart
+from controller import processExample, processBarChart, processParallelData
 
 app = Flask(__name__)
 CORS(app)
@@ -17,7 +17,8 @@ def fetchExample():
         points, cluster_names = processExample()
         resp = jsonify(data=points, clusters=cluster_names)
         return resp
-    else: # handling POST request, which is only effective when ExampleWithInteractions.vue is loaded
+    else: 
+    # handling POST request, which is only effective when ExampleWithInteractions.vue is loaded
         request_context = request.get_json() # JSON object
         method = request_context['method']
         points, cluster_names = processExample(method)
@@ -31,12 +32,29 @@ def fetchBarPlotData():
         points, cluster_names = processBarChart()
         resp = jsonify(data=points, clusters=cluster_names)
         return resp
-    else: # handling POST request, which is only effective when ExampleWithInteractions.vue is loaded
+    else: 
+    # handling POST request, which is only effective when ExampleWithInteractions.vue is loaded
         request_context = request.get_json() # JSON object
         method = request_context['method']
         points, cluster_names = processBarChart(method)
         resp = jsonify(data=points, clusters=cluster_names)
         return resp
+
+@app.route("/fetchParallelData", methods=["GET", "POST"])
+@cross_origin()
+def fetchParallelData():
+    if request.method == "GET": # handling GET request
+        points, cluster_names, columns = processParallelData()
+        resp = jsonify(data=points, clusters=cluster_names, columns=columns)
+        return resp
+    else: 
+    # handling POST request, which is only effective when ExampleWithInteractions.vue is loaded
+        request_context = request.get_json() # JSON object
+        method = request_context['method']
+        points, cluster_names = processParallelData(method)
+        resp = jsonify(data=points, clusters=cluster_names)
+        return resp
+
 
 if __name__ == "__main__":
     app.run(port=3100, debug=True)
