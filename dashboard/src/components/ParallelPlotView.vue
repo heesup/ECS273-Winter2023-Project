@@ -16,7 +16,7 @@ interface HDDFailure {
     smart_188_normalized: number;
     smart_197_normalized: number;
     smart_198_normalized: number;
-    // MFG: string;
+    MFG: string;
 }
 
 // Computed property: https://vuejs.org/guide/essentials/computed.html
@@ -31,7 +31,7 @@ export default {
             HDDFailure_data: [] as HDDFailure[],
             columns: [] as string[],
             size: { width: 0, height: 0 } as ComponentSize,
-            margin: {left: 20, right: 20, top: 20, bottom: 40} as Margin,
+            margin: {left: 20, right: 20, top: 60, bottom: 60} as Margin,
         }
     },
     computed: {
@@ -60,7 +60,7 @@ export default {
             this.size = { width: target.clientWidth, height: target.clientHeight };
         },
         initChart() {
-            var margin = {top: 5, right: 5, bottom: 5, left: 5},
+            var margin = {top: 40, right: 40, bottom: 40, left: 5},
                             width = this.size.width - margin.left - margin.right,
                             height = this.size.height - margin.top - margin.bottom;
 
@@ -71,22 +71,13 @@ export default {
                     .append("g")
                     .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
-            // let matrix_columns = ["Area", "AspectRation", "Compactness", "ConvexArea", "Class"];
             let domain_org = this.columns;
 
-            console.log(domain_org);
-            
-            // const domain_org = this.clusters;
-            // const domain_org: string[] = this.clusters;
             const domains = d3.csvParse(domain_org.join(','));
-            // const domains = d3.csvParse(domain_org.join(','));
             const domains_len = domains.length;
 
             const data = this.HDDFailure_data;
-            console.log(data);
-
-            let dimensions = domains['columns'].filter(function(d) { return d != "Class" })
-            // let dimensions = Object.keys(data[0]).filter(function(d) { return d != "Class" })
+            let dimensions = domains['columns'].filter(function(d) { return d != "MFG" })
 
             // For each dimension, I build a linear scale. I store all in a y object
             let y = {}
@@ -96,7 +87,6 @@ export default {
                     .domain( d3.extent(data, function(d) { return +d[name]; }) )
                     .range([height, 0])
             }
-            console.log(y)
 
             // Build the X scale -> it find the best position for each Y axis
             let x = d3.scalePoint()
@@ -104,33 +94,12 @@ export default {
                 .padding(1)
                 .domain(dimensions);
 
-            console.log(x);
-            console.log(dimensions)
-
             const color = d3.scaleOrdinal()
                 .domain(dimensions)
                 .range(d3.schemeTableau10)
 
-            const highlight = function(event, d){
-                const selected_class = d.Class
+            console.log('high')
 
-                // first every group turns grey
-                d3.selectAll(".line")
-                // Second the hovered specie takes its color
-                d3.selectAll("." + selected_class)
-                    .transition().duration(200)
-                    .style("stroke", color(selected_class))
-            }
-
-            // Unhighlight
-            const doNotHighlight = function(event, d){
-                d3.selectAll(".line")
-                    .transition().duration(200).delay(1000)
-                    .style("stroke", function(d){ return( color(d.Class))} )
-                    .style("opacity", "1")
-            }
-
-            // The path function take a row of the csv as input, and return x and y coordinates of the line to draw for this raw.
             function path(d) {
                 return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
             }
@@ -140,13 +109,11 @@ export default {
                 .data(data)
                 .join("path")
                     .attr("d", path)
-                    .attr("class", function (d) { return "line " + d.Class } )
+                    .attr("class", function (d) { return "line " + d.MFG } )
                     .attr("stroke-width", 0.3)
                     .style("fill", "none")
-                    .style("stroke", function(d){ return( color(d.Class))} )
+                    .style("stroke", function(d){ return( color(d.MFG))} )
                     .style("opacity", 0.3)
-                    .on("mouseover", highlight)
-                    .on("mouseleave", doNotHighlight )
 
             // Draw the axis:
             const Axis = svg.selectAll("myAxis")
@@ -155,7 +122,7 @@ export default {
                 .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
                 .each(function(d) { d3.select(this).call(d3.axisLeft().scale(y[d])); })
                 .append("text")
-                    .style("font", "bold 12px sans-serif")
+                    .style("font", "10px sans-serif")
                     .style("text-anchor", "middle")
                     .attr("y", -9)
                     .text(function(d) { return d; })
@@ -165,10 +132,10 @@ export default {
                 .append('text') // adding the text
                 .attr('transform', `translate(${width / 2}, ${height+20})`)
                 .attr('dy', '0.5rem') // relative distance from the indicated coordinates.
-                .style("font", "bold 15px sans-serif")
+                .style("font", "15px sans-serif")
                 .style('text-anchor', 'middle')
                 .style('font-weight', 'bold')
-                .text('Dry bean - Parallel Coordinate') // tex
+                .text('Parallel Coordinate') // text
         },
         initLegend() {
             let legendContainer = d3.select('#parallel-legend-svg');
@@ -211,10 +178,9 @@ export default {
                 .style('font-size', '.7rem')
                 .style('text-anchor', 'start')
                 .style('font-weight', 'bold')
-                .text('Bean Type')
+                .text('HDD manufacturers')
                 .attr('x', 5)
                 .attr('dy', '0.7rem')
-
         }
     },    
     watch: {

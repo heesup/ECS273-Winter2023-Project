@@ -34,10 +34,10 @@ export default {
       </v-row>
 
       <v-row>
-        <v-col offset="3">
+        <v-col offset="3" style="height: 50vh">
           <!-- <Notes msg="This message is showcasing how to pass down the props"/> -->
-          <!-- <ParallelPlotView/> -->
-          <img src="./components/ParallelPlotView.png" width="600">
+          <ParallelPlotView/>
+          <!-- <img src="./components/ParallelPlotView.png" width="600"> -->
         </v-col>
       </v-row>
     
