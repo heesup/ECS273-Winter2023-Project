@@ -113,16 +113,17 @@ def processParallelData() -> tuple[list[dict], list[int]]:
     # data = dataset.copy()
     root_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(root_dir, "data/mod_data_Q1234_20_21_22.csv")
-    prll_data: dict = pd.read_csv(csv_path, usecols=['smart_5_normalized','smart_187_normalized','smart_188_normalized','smart_197_normalized','smart_198_normalized'])
-    manufacturer_data = pd.read_csv(csv_path, usecols=['MFG'])
+    prll_data: dict = pd.read_csv(csv_path, usecols=['smart_5_normalized','smart_187_normalized','smart_188_normalized','smart_197_normalized','smart_198_normalized', 'MFG'])
+    #manufacturer_data = pd.read_csv(csv_path, usecols=['MFG'])
 
-    prll_data = prll_data.iloc[:1000]
+    # prll_data = prll_data.iloc[:1000]
 
     # Do Processing
     res_data = pd.DataFrame(data=prll_data)
-    y: np.ndarray = manufacturer_data
+    #y: np.ndarray = manufacturer_data
+    y: np.ndarray = prll_data['MFG']
 
-    return res_data.to_dict(orient='records'), list(y), prll_data.columns.tolist()
+    return res_data.to_dict(orient='records'), list(y.drop_duplicates()), prll_data.columns.tolist()
 
 # Load dataset globally
 dataset = load_dataset()
