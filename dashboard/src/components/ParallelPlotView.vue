@@ -25,52 +25,45 @@ interface HDDFailure {
     failure: number;
 }
 
+import { mapState, storeToRefs } from 'pinia'; 
+import { useParallelStore } from '../stores/parallelCoordinate';
 // 'Reallocated Sector Count', 'Reported Uncorrectable Errors', 'Command Timeout', 'Uncorrectable Sector Count', 'Current Pending Sector Count', 'Manufaturer'
 
 // Computed property: https://vuejs.org/guide/essentials/computed.html
 // Lifecycle in vue.js: https://vuejs.org/guide/essentials/lifecycle.html#lifecycle-diagram
 
 export default {
-    data() {
-        // Here we define the local states of this component. If you think the component as a class, then these are like its private variables.
+    setup() {
+        const prllstore = useParallelStore()
+
+        const { resize } = storeToRefs(prllstore);
         return {
-            points: [] as ScatterPoint[], // "as <Type>" is a TypeScript expression to indicate what data structures this variable is supposed to store.
-            clusters: [] as string[],
-            HDDFailure_data: [] as HDDFailure[],
-            columns: [] as string[],
-            size: { width: 0, height: 0 } as ComponentSize,
-            margin: {left: 20, right: 20, top: 60, bottom: 60} as Margin,
+            prllstore,
+            resize,
         }
+
+        console.log(prllstore)
     },
     computed: {
-        // Re-render the chart whenever the window is resized or the data changes (and data is non-empty)
-        rerender() {
-            return (!isEmpty(this.HDDFailure_data)) && this.size
-        }
+        ...mapState(useParallelStore, ['selectedMFG']) // Traditional way to map the store state to the local state
     },
     created() {
-        // fetch the data via API request when we init this component. This will only get called once.
-        // In axios anything we send back in the response are always bound to the "data" property.
-        axios.get(`${server}/fetchParallelData`)
-            .then(resp => { // check out the app.py in ./server/ to see the format
-                this.HDDFailure_data = resp.data.data; 
-                this.clusters = resp.data.clusters;
-                this.columns = resp.data.columns;
-
-                return true;
-            })
-            .catch(error => console.log(error));
+        // console.log('created')
+        this.prllstore.fetchParallel(this.selectedMFG);
+        // console.log(this.selectedMFG);
     },
     methods: {
         onResize() {  // record the updated size of the target element
-            let target = this.$refs.scatterContainer as HTMLElement
+            let target = this.$refs.prllContainer as HTMLElement
             if (target === undefined) return;
-            this.size = { width: target.clientWidth, height: target.clientHeight };
+            this.prllstore.size = { width: target.clientWidth, height: target.clientHeight };
+            console.log(this.prllstore.size)
         },
         initChart() {
+            console.log('init chart works')
             var margin = {top: 50, right: 80, bottom: 40, left: 5},
-                            width = this.size.width - margin.left - margin.right,
-                            height = this.size.height - margin.top - margin.bottom;
+                            width = this.prllstore.size.width - margin.left - margin.right,
+                            height = this.prllstore.size.height - margin.top - margin.bottom;
 
             var svg = d3.select("#parallel-svg")
                     .append("svg")
@@ -79,12 +72,14 @@ export default {
                     .append("g")
                     .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
-            let domain_org = this.columns;
+            let domain_org = this.prllstore.columns;
+
+            console.log(domain_org)
 
             const domains = d3.csvParse(domain_org.join(','));
             const domains_len = domains.length;
 
-            const data = this.HDDFailure_data;
+            const data = this.prllstore.HDDFailure_data;
             let dimensions = domains['columns'].filter(function(d) { return d != "failure" })
 
             // console.log(dimensions)
@@ -128,15 +123,15 @@ export default {
                 .join("path")
                     .attr("d", path)
                     .attr("class", function (d) { return "line " + d.failure } )
-                    .attr("stroke-width", 0.1)
+                    .attr("stroke-width", 0.9)
                     .style("fill", "none")
-                    .style("opacity", 0.9)
+                    .style("opacity", 0.8)
                     .style("stroke", function(d){ return( color(d.failure))} )
                     // .style("stroke", (d: number) => d === 1 ? 'red' : 'grey' )
 
             // const column_name: string[] = ['Raw Read Error Rate', 'Spin-Up Time', 'Reallocated Sector Count', 'Seek Error Rate', 'Power-On Hours', 'Temperature', 'Uncorrectable Sector Count', 'Current Pending Sector Count', 'Manufacturers']
 
-            const column_name: string[] = ['Reallocated Sector Count', 'Reported Uncorrectable Errors', 'Command Timeout', 'Uncorrectable Sector Count', 'Current Pending Sector Count', 'Manufaturer']                    
+            const column_name: string[] = ['Reallocated Sector Cnt', 'Reported Uncorrectable Err', 'Command Timeout', 'Uncorrectable Sector Cnt', 'Current Pending Sector Cnt', 'Manufaturer']                    
 
             // Draw the axis:
             const Axis = svg.selectAll("myAxis")
@@ -145,7 +140,7 @@ export default {
                 .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
                 .each(function(d) { d3.select(this).call(d3.axisLeft().scale(y[d])); })
                 .append("text")
-                    .style("font", "7px sans-serif")
+                    .style("font", "11px sans-serif")
                     .style("text-anchor", "start")
                     .attr("y", -9)
                     // .text(function(d) { return d; })
@@ -166,7 +161,7 @@ export default {
             let legendContainer = d3.select('#parallel-legend-svg');
 
             // let clusterLabels: string[] = this.clusters.map((cluster: string, idx: number) => `Cultivar ${idx+1}`)
-            let clusterLabels: string[] = this.clusters
+            let clusterLabels: string[] = this.prllstore.clusters
             // let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
             // let colorScale = d3.scaleOrdinal()
                                 // .domain(clusterLabels)
@@ -210,17 +205,28 @@ export default {
                 .text('HDD State')
                 .attr('x', 5)
                 .attr('dy', '0.7rem')
-        }
+        },
+        rerender() {
+            d3.select('#parallel-svg').selectAll('*').remove() // Clean all the elements in the chart
+            d3.select('#parallel-legend-svg').selectAll('*').remove()
+            this.initChart()
+            this.initLegend()
+        }        
     },    
     watch: {
         rerender(newSize) {
-            if (!isEmpty(newSize)) {
-                d3.select('#parallel-svg').selectAll('*').remove()
-                d3.select('#parallel-legend-svg').selectAll('*').remove()
-                this.initChart()
-                this.initLegend()
+            if ((newSize.width !== 0) && (newSize.height !== 0)) {
+                this.rerender()
             }
-        }
+        },
+        'prllstore.HDDFailure_data'(newData) {
+            if (!isEmpty(newData)) {
+                this.rerender()
+            }
+        },
+        selectedMFG(newMFG) { // function triggered when a different method is selected via dropdown menu
+            this.prllstore.fetchParallel(newMFG)
+        }        
     },
     // The following are general setup for resize events.
     mounted() {
@@ -236,15 +242,24 @@ export default {
 <!-- "ref" registers a reference to the HTML element so that we can access it via the reference in Vue.  -->
 <!-- We use flex to arrange the layout-->
 <template>
-    <div class="chart-container d-flex" ref="scatterContainer">
-        <svg id="parallel-svg" width="100%" height="100%">
-            <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
-        </svg>
-        <div id="scatter-control-container" class="d-flex">
+    <div class="viz-container d-flex justify-end">
+        <div class="chart-container d-flex" ref="prllContainer">
+            <svg id="parallel-svg" width="100%" height="100%">
+                <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
+            </svg>
             <svg id="parallel-legend-svg" width=100 height="40%">
             </svg>
         </div>
-
+        <div id="prll-control-container" class="d-flex">
+            <div class="d-flex mb-4">
+                <label :style="{ fontSize: '0.7rem' }"> <strong> Select Manufaturer: </strong>
+                    <select class="manufacturer-select" v-model="prllstore.selectedMFG">
+                        <option v-for="manufacturer in prllstore.manufacturers" :value="manufacturer" 
+                            :selected="(manufacturer === prllstore.selectedMFG)? true : false">{{manufacturer}}</option>
+                    </select>
+                </label>
+            </div>            
+        </div>
     </div>
 </template>
 
@@ -259,7 +274,21 @@ export default {
     height: 100%;
 }
 
+#prll-control-container{
+    width: 10rem;
+    flex-direction: row;
+    display: block;
+}
+
 #parallel-legend-container{
     width: 5rem;
+}
+.manufacturer-select{
+    outline: solid;
+    outline-width: 1px;
+    outline-color: lightgray;
+    border-radius: 2px;
+    width: 100px;
+    padding: 2px 5px;
 }
 </style>

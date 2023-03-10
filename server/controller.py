@@ -107,7 +107,7 @@ def processExample(method: str = 'PCA') -> tuple[list[dict], list[int]]:
     return points.to_dict(orient='records'), list(target_names)
 
 
-def processParallelData() -> tuple[list[dict], list[int]]:
+def processParallelData(manufacturer: str = 'all') -> tuple[list[dict], list[int]]:
 
     global dataset 
     data = dataset.copy()
@@ -117,8 +117,13 @@ def processParallelData() -> tuple[list[dict], list[int]]:
     # prll_data = data[['smart_1_normalized', 'smart_3_normalized', 'smart_5_normalized', 'smart_7_normalized', 'smart_9_normalized','smart_194_normalized', 'smart_197_normalized', 'smart_198_normalized','MFG','failure']]
     prll_data = data[['smart_5_normalized','smart_187_normalized','smart_188_normalized','smart_197_normalized','smart_198_normalized','MFG','failure']]
 
+    print(manufacturer)
+
+    if manufacturer != 'All':
+        prll_data = prll_data[prll_data['MFG'] == manufacturer]
+
     # For test - reduce loaded data size
-    # prll_data = prll_data.iloc[:6000]
+    # prll_data = prll_data.iloc[:10000]
 
     # Do Processing
     res_data = pd.DataFrame(data=prll_data)
