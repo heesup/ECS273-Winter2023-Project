@@ -79,6 +79,8 @@ export default {
             const data = this.HDDFailure_data;
             let dimensions = domains['columns'].filter(function(d) { return d != "MFG" })
 
+            console.log(dimensions)
+
             // For each dimension, I build a linear scale. I store all in a y object
             let y = {}
             for (let i in domain_org) {
@@ -95,10 +97,7 @@ export default {
                 .domain(dimensions);
 
             const color = d3.scaleOrdinal()
-                .domain(dimensions)
-                .range(d3.schemeTableau10)
-
-            console.log('high')
+                .range(d3.schemeTableau10);
 
             function path(d) {
                 return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
@@ -113,7 +112,6 @@ export default {
                     .attr("stroke-width", 0.3)
                     .style("fill", "none")
                     .style("stroke", function(d){ return( color(d.MFG))} )
-                    .style("opacity", 0.3)
 
             // Draw the axis:
             const Axis = svg.selectAll("myAxis")
