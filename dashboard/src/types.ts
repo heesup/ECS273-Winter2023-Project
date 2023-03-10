@@ -18,4 +18,5 @@ export interface Point {
 
 export interface BarPoint {
     value: number;
+    cluster: string[];
 }

@@ -20,9 +20,9 @@ def filter_dataset(data):
     
     res =  [True for i in range(len(data.columns))]
     for i,col in enumerate(data.columns):
-        if "normalized" in col:
+        #if "normalized" in col:
         #if "raw" in col:
-            res[i] = False
+        # res[i] = False
         # Value check
         if 'smart' in col:
             if (data[col].min() == 0) & (data[col].max() == 0):
@@ -61,6 +61,7 @@ def processBarChart(method: str = 'failure') -> tuple[list[dict], list[int]]:
         table = data.pivot_table( values = method, index = ['MFG', 'capacity_TB'],aggfunc=np.mean)
 
     table.columns = ['value']
+    table["cluster"] = table.index
 
     return table.to_dict(orient='records'), list(table.index)
 
@@ -99,9 +100,13 @@ def processExample(method: str = 'PCA') -> tuple[list[dict], list[int]]:
         points['cluster'] = y
     else:
         # For debug speed-up
-        test_sample = 100
-        points = pd.DataFrame(Z[:12000], columns=['posX', 'posY'])
-        points['cluster'] = y[:12000]
+        if 0:
+            test_sample = 100
+            points = pd.DataFrame(Z[:test_sample], columns=['posX', 'posY'])
+            points['cluster'] = y[:test_sample]
+        else:
+            points = pd.DataFrame(Z, columns=['posX', 'posY'])
+            points['cluster'] = y
 
     # How to JSON serialize pandas dataframes and numpy arrays
     return points.to_dict(orient='records'), list(target_names)

@@ -43,7 +43,7 @@ export default {
             let chartContainer = d3.select('#bar-svg')
 
 
-            let clusters: string[] = this.store.clusters.map((cluster: string, idx: number) => String(idx))
+            let clusters: string[] = this.store.clusters.map((cluster: string, idx: number) => cluster[0])
             let colorScale = d3.scaleOrdinal().domain(clusters).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
             
             var svgHeight = this.store.size.height;
@@ -54,10 +54,15 @@ export default {
             var offsetY = this.store.margin.top;
             var bottom = this.store.margin.bottom;
             
-            let xExtents = d3.extent(this.store.clusters.map((d: Object,i) => i as number)) as [number, number]
-            let xScale = d3.scaleLinear()
-                .range([this.store.margin.left, this.store.size.width - this.store.margin.right])
-                .domain(xExtents)
+            // let xExtents = d3.extent(this.store.clusters.map((d: Object,i) => i as number)) as [number, number]
+            // let xScale = d3.scaleLinear()
+            //     .range([this.store.margin.left, this.store.size.width - this.store.margin.right])
+            //     .domain(xExtents)
+            let xScale = d3.scaleBand()
+            .range([this.store.margin.left, this.store.size.width - this.store.margin.right])
+            .domain(this.store.clusters.map(d => d[1]+d[0]))
+           
+
             // console.log(type
             // let xExtents = d3.extent(this.store.clusters.map((d: Object,i) => d as String)) as [String, String]
             // let xScale = d3.scaleBand()
@@ -66,38 +71,35 @@ export default {
 
             // range limit 정의
             var interval = 5;
-            console.log(this.store.size.height)
+            //console.log(this.store.size.height)
             let yExtents = d3.extent(this.store.points.map((d: BarPoint) => d.value as number)) as [number, number]
-            let yScale = d3.scaleLinear()
+            //let yScale = d3.scaleLinear()
+            
+            
+            function getScale(method: string) {
+                if (method === 'failure') {
+                    return d3.scaleLinear()
+                } else {
+                    return d3.scaleLog()
+                }
+            }
+
+            let yScale = getScale(this.store.selectedMethod)
                 .range([this.store.size.height - this.store.margin.bottom, this.store.margin.top])
                 .domain(yExtents)
 
+
             const yAxis = chartContainer.append('g')
                 .attr('transform', `translate(${offsetX}, ${0})`)
-                .call(d3.axisLeft(yScale))
+                .call(d3.axisLeft(yScale)
+                    //.tickFormat(function(d){ return " $" + d})
+                )
+                
 
             //그래프 그리기
             var barElements = chartContainer
                 .selectAll("rect")
                 .data(dataSet)
-
-            // barElements.enter()
-            //     .append("rect")
-            //     .attr("class", "bar")
-            //     .attr("height", function (d:BarPoint) {
-            //         //console.log(d.value)
-            //         //return d.value;
-            //         return svgHeight  - yScale(d.value)
-            //     })
-            //     .attr("width", 5)
-            //     .attr("x", function (d, i) {
-            //         return i * 6 + interval + offsetX; //updated offsetX
-            //     })
-            //     .attr("y", function (d) {
-            //         return svgHeight - d.value - offsetY; //updated offsetY
-            //     })
-            //     .attr("fill","orange")
-            // //        .exit()
 
             const points = chartContainer.append('g')
                 .selectAll(".bar")
@@ -107,8 +109,12 @@ export default {
                 // .attr("x", function (d, i) {
                 //     return i * 6 + interval + offsetX; //updated offsetX
                 // })
-                .attr("x", function (d, i) {
-                    return xScale(i); //updated offsetX
+                // .attr("x", function (d, i) {
+                //     return xScale(i); //updated offsetX
+                // })
+                .attr("x", function (d){
+                    //console.log(d.cluster[0])
+                    return xScale(d.cluster[1]+d.cluster[0]) as number; // 용량 먼저
                 })
                 .attr("y", d => yScale(d.value))
                 .attr("width", this.store.size.width/(size(this.store.points)+10))
@@ -120,19 +126,19 @@ export default {
                 .selectAll("#barNum")
                 .data(this.store.clusters)
 
-            textElements.enter()
-                .append("text")
-                .attr("class", "barNum")
-                .attr("x", function (d, i) {
-                    return i * 6 + 10 + interval + offsetX;    // 막대그래프 표시간격 맞춤 // updated offsetX
-                })
-                .attr("y", svgHeight - 5) //updated offsetY
-                .text(function (d, i) {
-                    return d[0]+d[1];
-                })
-                .style('font-size', '.5rem')
-                .style('text-anchor', 'start')
-                .exit()
+            // textElements.enter()
+            //     .append("text")
+            //     .attr("class", "barNum")
+            //     .attr("x", function (d, i) {
+            //         return i * 6 + 10 + interval + offsetX;    // 막대그래프 표시간격 맞춤 // updated offsetX
+            //     })
+            //     .attr("y", svgHeight - 5) //updated offsetY
+            //     .text(function (d, i) {
+            //         return d[0]; // 제조사 표시
+            //     })
+            //     .style('font-size', '.5rem')
+            //     .style('text-anchor', 'start')
+            //     .exit()
 
             //가로방향 선을 표시
 
@@ -143,8 +149,21 @@ export default {
             //     .attr("transform", "translate(" + offsetX + ", " + ((svgHeight) - offsetY) + ")")
 
             const xAxis = chartContainer.append('g')
+                .attr("class", "x axis")
                 .attr('transform', `translate(0, ${this.store.size.height - this.store.margin.bottom})`)
-                .call(d3.axisBottom(xScale))
+                .call(d3.axisBottom(xScale)
+                    .tickFormat(function(d){
+                        //console.log(d);
+                        return parseInt(d, 10).toString();// 용량 표시
+                    })
+                )
+                .selectAll("text")
+                .attr("y", 10)
+                .attr("x", 0)
+                //.attr("dy", ".35em")
+                .style('font-size', '.4rem')
+                //.attr("transform", "rotate(-45)")
+                .style("text-anchor", "center");
 
             var xElements = d3.select("#bar-svg")
                 .selectAll("#barName")
@@ -164,7 +183,12 @@ export default {
         initLegend() {
             let legendContainer = d3.select('#bar-legend-svg')
 
-            let clusterLabels: string[] = this.store.clusters.map((cluster: string, idx: number) => `Cultivar ${idx+1}`)
+            //let clusterLabels: string[] = this.store.clusters.map((cluster: string, idx: number) => `${cluster[0]}`)
+            let clusterLabels: string[] = this.store.clusters.map((d) => `${d[0]}`)
+            function removeDuplicates(arr:string[]) {
+                return arr.filter((item, index) => arr.indexOf(item) === index);
+            }
+            clusterLabels = removeDuplicates(clusterLabels)
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
 
             const rectSize = 12;
@@ -181,6 +205,7 @@ export default {
                         .attr('width', rectSize).attr('height', rectSize)
                         .attr('x', 5).attr('y', (d: string, idx: number) => idx * rectSize * 1.5)
                         .style('fill', (d: string) => colorScale(d) as string)
+                        .style('opacity', .5)
 
                     select.append('text')
                         .text((d: string) => d)
@@ -193,20 +218,20 @@ export default {
                     return select
                 })
 
-            // const title = legendContainer
-            //     .append('text')
-            //     .style('font-size', '.7rem')
-            //     .style('text-anchor', 'start')
-            //     .style('font-weight', 'bold')
-            //     .text('Cultivars')
-            //     .attr('x', 5)
-            //     .attr('dy', '0.7rem')
+            const title = legendContainer
+                .append('text')
+                .style('font-size', '.7rem')
+                .style('text-anchor', 'start')
+                .style('font-weight', 'bold')
+                .text('MFG')
+                .attr('x', 5)
+                .attr('dy', '0.7rem')
         },
         rerender() {
             d3.select('#bar-svg').selectAll('*').remove() // Clean all the elements in the chart
             d3.select('#bar-legend-svg').selectAll('*').remove()
             this.initChart()
-            //this.initLegend()
+            this.initLegend()
         }
     },
     watch: {
@@ -254,6 +279,8 @@ export default {
                     </select>
                 </label>
             </div>
+            <svg id="bar-legend-svg" width="100%" height="100%">
+            </svg>
         </div>
     </div>
 </template>

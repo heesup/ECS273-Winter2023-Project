@@ -27,9 +27,9 @@ export const useExampleStore = defineStore('exampleWithInteractions', {
             axios.post(`${server}/fetchBarPlotData`, {method: method})
                 .then(resp => {
                     //console.log(resp.data)
-                    this.points = resp.data.data;
-                    //console.log(this.points)
-                    this.clusters = resp.data.clusters;
+                    this.points = resp.data.data; // value, cluster
+                    console.log(this.points)
+                    this.clusters = resp.data.clusters; //for legend
                     //console.log(resp.data.clusters)
                     return true;
                 })

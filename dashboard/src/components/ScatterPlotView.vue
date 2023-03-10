@@ -20,7 +20,7 @@ export default {
             points: [] as ScatterPoint[],
             clusters: [] as string[],
             size: { width: 0, height: 0 } as ComponentSize,
-            margin: {left: 20, right: 20, top: 20, bottom: 40} as Margin,
+            margin: {left: 40, right: 20, top: 20, bottom: 60} as Margin,
         }
     },
     computed: {
@@ -66,17 +66,18 @@ export default {
                 .join('circle')
                 .attr('cx', (d: ScatterPoint) => xScale(d.posX))
                 .attr('cy', (d: ScatterPoint) => yScale(d.posY))
-                .attr('r', 5)
+                .attr('r', 2)
                 .style('fill', (d: ScatterPoint) => colorScale(String(d.cluster)) as string)
                 .style('opacity', .7)
 
             const title = chartContainer.append('g')
                 .append('text')
-                .attr('transform', `translate(${this.size.width / 2}, ${this.size.height - this.margin.top})`)
+                .attr('transform', `translate(${this.size.width / 2}, ${this.size.height - this.margin.top - 10})`)
                 .attr('dy', '0.5rem')
                 .style('text-anchor', 'middle')
                 .style('font-weight', 'bold')
                 .text('HDD SMART PCA Projection')
+                .style('font-size', '0.8rem')
 
 
              // This following part visualizes the axes. We did not do it because the x- and y- axis in DR projections usually mean nothing for interpretation.
@@ -85,20 +86,28 @@ export default {
             const xAxis = chartContainer.append('g')
                 .attr('transform', `translate(0, ${this.size.height - this.margin.bottom})`)
                 .call(d3.axisBottom(xScale))
+                .selectAll('text')
+                .style('font-size', '.5rem')
 
             const yAxis = chartContainer.append('g')
                 .attr('transform', `translate(${this.margin.left}, 0)`)
                 .call(d3.axisLeft(yScale))
+                .selectAll('text')
+                .style('font-size', '.5rem')
 
             const yLabel = chartContainer.append('g')
-                .attr('transform', `translate(${this.margin.left}, ${this.size.height / 2 + this.margin.top}) rotate(-90)`)
+                .attr('transform', `translate(${this.margin.left-25}, ${this.size.height / 2 - this.margin.top}) rotate(-90)`)
                 .append('text')
                 .text('PC2')
+                .style('font-size', '.5rem')
+                .style('text-anchor', 'middle')
 
             const xLabel = chartContainer.append('g')
-                .attr('transform', `translate(${this.size.width / 2}, ${this.size.height - this.margin.top})`)
+                .attr('transform', `translate(${this.size.width / 2}, ${this.size.height - this.margin.top - 15})`)
                 .append('text')
                 .text('PC1')
+                .style('font-size', '.5rem')
+                .style('text-anchor', 'middle')
             
         },
         initLegend() {
@@ -212,6 +221,9 @@ export default {
     height:100%;
     flex-direction: row;
     flex-wrap: nowrap;
+    /* for debug */
+    border: 1px;
+    border-style: dashed;
 }
 .chart-container{
     width: calc(100% - 5rem);

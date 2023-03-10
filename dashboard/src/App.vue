@@ -24,7 +24,6 @@ export default {
       <v-row style="height: 40vh" no-gutters>
         <v-col cols="" offset="">
           <ScatterPlotView/>
-          <!-- <img src="./components/ScatterPlotView.png" height="300"> -->
         </v-col>
         
         <v-col cols="" offset="">
@@ -45,9 +44,9 @@ export default {
     
     <v-col cols="" offset="3">
       <v-row no-gutters>
-        <v-col>
-          <!-- <SimulationView/> -->
-          <img src="./components/SimulationView.png" height="600">
+        <v-col style="height: 90vh">
+          <SimulationView/>
+          <!-- <img src="./components/SimulationView.png" height="600"> -->
         </v-col>
       </v-row>
     </v-col>
