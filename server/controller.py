@@ -20,10 +20,10 @@ def filter_dataset(data):
     
     res =  [True for i in range(len(data.columns))]
     for i,col in enumerate(data.columns):
-        #if "normalized" in col:
-        #if "raw" in col:
-        # res[i] = False
-        # Value check
+        # if "normalized" in col:
+        # #if "raw" in col:
+        #     res[i] = False
+        # # Value check
         if 'smart' in col:
             if (data[col].min() == 0) & (data[col].max() == 0):
                 # print(col)
@@ -112,21 +112,29 @@ def processExample(method: str = 'PCA') -> tuple[list[dict], list[int]]:
     return points.to_dict(orient='records'), list(target_names)
 
 
-def processParallelData() -> tuple[list[dict], list[int]]:
+def processParallelData(manufacturer: str = 'all') -> tuple[list[dict], list[int]]:
 
-    # global dataset 
-    # data = dataset.copy()
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(root_dir, "data/mod_data_Q1234_20_21_22.csv")
-    prll_data: dict = pd.read_csv(csv_path, usecols=['smart_5_normalized','smart_187_normalized','smart_188_normalized','smart_197_normalized','smart_198_normalized', 'MFG'])
-    #manufacturer_data = pd.read_csv(csv_path, usecols=['MFG'])
+    global dataset 
+    data = dataset.copy()
+    # prll_data: dict = pd.read_csv(csv_path, usecols=['smart_5_normalized','smart_187_normalized','smart_188_normalized','smart_197_normalized','smart_198_normalized','MFG','failure'])
+    # prll_data: dict = pd.read_csv(csv_path, usecols=['smart_1_normalized', 'smart_3_normalized', 'smart_5_normalized', 'smart_7_normalized', 'smart_194_normalized','smart_197_normalized','smart_198_normalized','MFG'])
 
-    # prll_data = prll_data.iloc[:1000]
+    # prll_data = data[['smart_1_normalized', 'smart_3_normalized', 'smart_5_normalized', 'smart_7_normalized', 'smart_9_normalized','smart_194_normalized', 'smart_197_normalized', 'smart_198_normalized','MFG','failure']]
+    prll_data = data[['smart_5_normalized','smart_187_normalized','smart_188_normalized','smart_197_normalized','smart_198_normalized','MFG','failure']]
+
+    print(manufacturer)
+
+    if manufacturer != 'All':
+        prll_data = prll_data[prll_data['MFG'] == manufacturer]
+
+    # For test - reduce loaded data size
+    # prll_data = prll_data.iloc[:10000]
 
     # Do Processing
     res_data = pd.DataFrame(data=prll_data)
     #y: np.ndarray = manufacturer_data
-    y: np.ndarray = prll_data['MFG']
+    # y: np.ndarray = prll_data['MFG']
+    y: np.ndarray = prll_data['failure']
 
     return res_data.to_dict(orient='records'), list(y.drop_duplicates()), prll_data.columns.tolist()
 

@@ -50,9 +50,9 @@ def fetchParallelData():
     else: 
     # handling POST request, which is only effective when ExampleWithInteractions.vue is loaded
         request_context = request.get_json() # JSON object
-        method = request_context['method']
-        points, cluster_names = processParallelData(method)
-        resp = jsonify(data=points, clusters=cluster_names)
+        manufacturer = request_context['manufacturer']
+        points, cluster_names, columns = processParallelData(manufacturer)
+        resp = jsonify(data=points, clusters=cluster_names, columns=columns)
         return resp
 
 
