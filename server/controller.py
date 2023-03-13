@@ -7,36 +7,8 @@ from resources.hd_processing_template import perform_PCA, perform_TSNE
 #from resources.time_processing_template import prepare_time_template_data, apply_arima, apply_sarima
 import os
 
+from utils import load_dataset, filter_dataset
 
-def load_dataset():
-    root_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(root_dir,"data/mod_data_Q1234_20_21_22.csv")
-    data: dict = pd.read_csv(csv_path)
-    return data
-
-def filter_dataset(data):
-    # Fill NA
-    data = data.fillna(0)
-    
-    res =  [True for i in range(len(data.columns))]
-    for i,col in enumerate(data.columns):
-        # if "normalized" in col:
-        # #if "raw" in col:
-        #     res[i] = False
-        # # Value check
-        if 'smart' in col:
-            if (data[col].min() == 0) & (data[col].max() == 0):
-                # print(col)
-                res[i] = False
-    data = data.iloc[:,res]
-    
-    # Normalize data
-    if 0:
-        for i,col in enumerate(data.columns):
-            if "raw" in col:
-                data[col] = data[col] / data[col].abs().max()
-
-    return data
 
 
 def processBarChart(method: str = 'failure') -> tuple[list[dict], list[int]]:
