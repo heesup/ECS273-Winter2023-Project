@@ -8,7 +8,7 @@ from resources.hd_processing_template import perform_PCA, perform_TSNE
 import os
 
 from utils import load_dataset, filter_dataset
-
+from lifelines import KaplanMeierFitter
 
 
 def processBarChart(method: str = 'failure') -> tuple[list[dict], list[int]]:
@@ -109,6 +109,39 @@ def processParallelData(manufacturer: str = 'all') -> tuple[list[dict], list[int
     y: np.ndarray = prll_data['failure']
 
     return res_data.to_dict(orient='records'), list(y.drop_duplicates()), prll_data.columns.tolist()
+
+
+def processKMSurvivalCurveData():
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(root_dir, 'data/pdsurv_2020_2022.csv')
+
+    pdsurv = pd.read_csv(csv_path)
+    grp_pdsurv = pdsurv.groupby("manufacturer")
+    YEARS = 365.25
+
+    res_df = pd.DataFrame(columns=['MFG', 'x', 'y', 'y_upper', 'y_lower'])
+
+    for name, grouped_df in grp_pdsurv:
+        # skip small sample manufacturers
+        if len(grouped_df) < 100:
+            continue
+        
+        kmf = KaplanMeierFitter()
+        kmf.fit(grouped_df.duration/YEARS,  event_observed=grouped_df.failure)
+        
+        confidence_intervals = kmf.confidence_interval_
+
+        x = kmf.survival_function_.index.values
+        y = kmf.survival_function_['KM_estimate'].values
+        y_upper = confidence_intervals['KM_estimate_upper_0.95'].values
+        y_lower = confidence_intervals['KM_estimate_lower_0.95'].values
+
+        for i in range(len(x)):
+            new_row = {'MFG': name, 'x': x[i], 'y': y[i], 'y_upper': y_upper[i], 'y_lower': y_lower[i]}
+            res_df.loc[len(res_df)] = new_row
+
+    y: np.ndarray = res_df['MFG']
+    return res_df.to_dict(orient='records'), list(y.drop_duplicates())
 
 # Load dataset globally
 dataset = load_dataset()

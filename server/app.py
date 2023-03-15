@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
-from controller import processExample, processBarChart, processParallelData
+from controller import processExample, processBarChart, processParallelData, processKMSurvivalCurveData
 
 app = Flask(__name__)
 CORS(app)
@@ -53,6 +53,25 @@ def fetchParallelData():
         manufacturer = request_context['manufacturer']
         points, cluster_names, columns = processParallelData(manufacturer)
         resp = jsonify(data=points, clusters=cluster_names, columns=columns)
+        return resp
+
+@app.route("/fetchKMSurvivalCurveData", methods=["GET", "POST"])
+@cross_origin()
+def fetchKMSurvivalCurveData():
+    if request.method == "GET": # handling GET request
+        #points, cluster_names, columns = processKMSurvivalCurveData()
+        # resp = jsonify(data=points, clusters=cluster_names, columns=columns)
+        points, cluster_names = processKMSurvivalCurveData()
+        resp = jsonify(data=points, clusters=cluster_names)
+        return resp
+    else: 
+    # handling POST request, which is only effective when ExampleWithInteractions.vue is loaded
+        request_context = request.get_json() # JSON object
+        manufacturer = request_context['manufacturer']
+        points, cluster_names = processKMSurvivalCurveData()
+        resp = jsonify(data=points, clusters=cluster_names,)
+        # points, cluster_names, columns = processKMSurvivalCurveData(manufacturer)
+        # resp = jsonify(data=points, clusters=cluster_names, columns=columns)
         return resp
 
 
