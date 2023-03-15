@@ -74,8 +74,7 @@ def fetchKMSurvivalCurveData():
             abort(500, description=str(e))
 
     else:
-        except Exception as e:
-            abort(500, description=str(e))
+        abort(500, description=str(e))
 
 @app.route("/fetchKMSurvivalCurveSerialData", methods=["GET", "POST"])
 @cross_origin()
