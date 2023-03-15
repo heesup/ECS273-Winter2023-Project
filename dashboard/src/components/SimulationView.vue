@@ -43,7 +43,7 @@ export default {
             points: [] as HddLifeData[], // "as <Type>" is a TypeScript expression to indicate what data structures this variable is supposed to store.
             clusters: [] as string[],
             size: { width: 0, height: 0 } as ComponentSize,
-            margin: {left: 40, right: 20, top: 20, bottom: 40} as Margin,
+            margin: {left: 50, right: 20, top: 20, bottom: 40} as Margin,
             MFGs: ['Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS'] as string[],
             selectedMFG: "Seagate" as string,
             selectedCapacity: 0 as number,
@@ -64,9 +64,11 @@ export default {
             // fetch the data via API request when we init this component. This will only get called once.
             // In axios anything we send back in the response are always bound to the "data" property.
             axios.get(`${server}/fetchKMSurvivalCurveData`)
+            //axios.get(`${server}/fetchKMSurvivalCurveSerialData?manufacturer=Seagate`)
                 .then(resp => { // check out the app.py in ./server/ to see the format
                     this.points = resp.data.data; 
                     this.clusters = resp.data.clusters;
+                    console.log(resp.data.data)
                     return true;
                 })
                 .catch(error => console.log(error));
@@ -95,76 +97,91 @@ export default {
             const width = this.size.width - this.margin.left - this.margin.right;
             const height = this.size.height - this.margin.top - this.margin.bottom;
 
-            // Append the SVG object to the body of the page
-            const svg = d3
-                .select("#simulation-svg")
-                .append("svg")
-                .attr("width", width + this.margin.left + this.margin.right)
-                .attr("height", height + this.margin.top + this.margin.bottom)
-                .append("g")
-                .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
-
-            // Create the scales for the X and Y axes
-            const xScale = d3
-            .scaleLinear()
-            .domain([0, d3.max(data, (d) => d.x) ?? 0])
-            .range([0, width]);
-
-            const yScale = d3
-            .scaleLinear()
-            .domain([0, d3.max(data, (d) => d.y) ?? 0])
-            .range([height, 0]);
-
-            // Add the X and Y axes to the SVG object
-            svg
-            .append("g")
-            .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(xScale));
-            svg.append("g").call(d3.axisLeft(yScale));
-
-            const area = d3
-            .area<HddLifeData>()
-            .x(function(d) { return xScale(d.x) })
-            .y0(function(d) { return yScale(d.y - d.y_lower) })
-            .y1(function(d) { return yScale(d.y + d.y_upper) })
 
             let clusterLabels: string[] = this.clusters
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
+            // let colorScale = d3.scaleOrdinal().domain(['All', 'Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS'] 
+            //                     ).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
+            
+            // group the data: I want to draw one line per group
+            const grouped_data = d3.group(data, d => d.MFG);
+            //console.log(grouped_data)
+            //console.log(arrayFromRollup)
+            //////////////////////////////////////////
+            for(let i = 0;i < this.clusters.length;i++){
+                // Append the SVG object to the body of the page
+                let mfg_data = grouped_data.get(this.clusters[i]) as HddLifeData[]
+                //console.log(mfg_data)
+                const svg = d3
+                    .select("#simulation-svg")
+                    .append("svg")
+                    .attr("width", width + this.margin.left + this.margin.right)
+                    .attr("height", height + this.margin.top + this.margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
 
-            // Show confidence interval
-            svg.append("path")
-            .datum(data)
-            .attr("fill", colorScale(clusterLabels[0]) as string)
-            //.attr("fill", "#cce5df")
-            .style('opacity', .5)
-            .attr("stroke", "none")
-            .attr("d", area)
+                // Create the scales for the X and Y axes
+                const xScale = d3
+                .scaleLinear()
+                .domain([0, d3.max(data, (d) => d.x) ?? 0])
+                .range([0, width]);
 
-            // Define the line function
-            const line = d3
-            .line<HddLifeData>()
-            .x((d) => xScale(d.x))
-            .y((d) => yScale(d.y));
+                const yScale = d3
+                .scaleSymlog()
+                .domain([0, d3.max(data, (d) => d.y) ?? 0])
+                .range([height, 0]);
 
-            // Add the line to the SVG object
-            svg
-            .append("path")
-            .datum(data)
-            .attr("fill", "none")
-            .attr("stroke", "steelblue")
-            .attr("stroke-width", 1.5)
-            .attr("d", line);
+                // Add the X and Y axes to the SVG object
+                svg
+                .append("g")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(xScale));
+                
+                svg.append("g").call(d3.axisLeft(yScale)
+                            .tickFormat(d=>d*100.0+"%")
+                            );
 
 
+                const area = d3
+                .area<HddLifeData>()
+                .x(function(d) { return xScale(d.x) })
+                .y0(function(d) { return yScale(d.y_lower) })
+                .y1(function(d) { return yScale(d.y_upper) })
+
+                // Show confidence interval
+                svg.append("path")
+                .datum(mfg_data)
+                .attr("fill", colorScale(clusterLabels[i]) as string)
+                //.attr("fill", "#cce5df")
+                .style('opacity', .5)
+                .attr("stroke", "none")
+                .attr("d", area)
+
+                // Define the line function
+                const line = d3
+                .line<HddLifeData>()
+                .x((d) => xScale(d.x))
+                .y((d) => yScale(d.y));
+
+                // Add the line to the SVG object
+                svg
+                .append("path")
+                .datum(mfg_data)
+                .attr("fill", "none")
+                .attr("stroke", colorScale(clusterLabels[i]) as string)
+                .attr("stroke-width", 1.5)
+                .attr("d", line)
+            }
+            
             const xLabel = chartContainer.append('g')
-                .attr('transform', `translate(${(this.size.width - this.margin.left) / 2}, ${this.size.height - 15})`)
+                .attr('transform', `translate(${(this.size.width+this.margin.left) / 2}, ${this.size.height - 15})`)
                 .append('text')
                 .text('Years')
                 .style('font-size', '.5rem')
                 .style('text-anchor', 'middle')
 
             const yLabel = chartContainer.append('g')
-                .attr('transform', `translate(${this.margin.left-25}, ${(this.size.height-this.margin.top) / 2}) rotate(-90)`)
+                .attr('transform', `translate(${this.margin.left-35}, ${(this.size.height-this.margin.top) / 2}) rotate(-90)`)
                 .append('text')
                 .text('Survival %')
                 .style('font-size', '.5rem')
@@ -302,14 +319,19 @@ export default {
         </v-app>
     </div>
 
-    <div class="chart-container d-flex" ref="scatterContainer"> 
-            <!-- <img src="src/components/Screenshot 2023-03-14 at 1.37.43 PM.png" width="475"> -->
-        <svg id="simulation-svg" width="80%" height="100%">
-            <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
-        </svg>
-        <svg id="sim-legend-svg" width="20%" height="100%">
-        </svg>
+    <div class="vis-container d-flex" > 
+        <div class="chart-container d-flex" ref="scatterContainer">
+                <!-- <img src="src/components/Screenshot 2023-03-14 at 1.37.43 PM.png" width="475"> -->
+            <svg id="simulation-svg" width="100%" height="100%">
+                <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
+            </svg>
+        </div>
+
+            <svg id="sim-legend-svg" width="20%" height="100%">
+            </svg>
+     
     </div>
+    
     
 
 </template>
@@ -324,8 +346,17 @@ export default {
     flex-direction: column;
     flex-wrap: nowrap;
 }
-.chart-container{
+.vis-container{
     height: 60%;
+    width: calc(100% - 5rem); 
+    /* for debug */
+    border: 1px;
+    border-style: dashed;
+    flex-direction: row;
+    flex-wrap: nowrap;
+}
+.chart-container{
+    height: 100%;
     width: calc(100% - 5rem); 
     /* for debug */
     border: 1px;
