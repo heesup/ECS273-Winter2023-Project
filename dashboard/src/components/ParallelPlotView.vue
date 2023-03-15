@@ -247,8 +247,7 @@ export default {
             <svg id="parallel-svg" width="100%" height="100%">
                 <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
             </svg>
-            <svg id="parallel-legend-svg" width=100 height="40%">
-            </svg>
+
         </div>
         <div id="prll-control-container" class="d-flex">
             <div class="d-flex mb-4">
@@ -258,7 +257,9 @@ export default {
                             :selected="(manufacturer === prllstore.selectedMFG)? true : false">{{manufacturer}}</option>
                     </select>
                 </label>
-            </div>            
+            </div>
+            <svg id="parallel-legend-svg" width=100 height="40%">
+            </svg>        
         </div>
     </div>
 </template>
@@ -268,15 +269,19 @@ export default {
     height:100%;
     flex-direction: row;
     flex-wrap: nowrap;
+    border: 1px;
+    border-style: dashed;
 }
 .chart-container{
     width: calc(100% - 5rem);
     height: 100%;
+    border: 1px;
+    border-style: dashed;
 }
 
 #prll-control-container{
     width: 10rem;
-    flex-direction: row;
+    flex-direction: column;
     display: block;
 }
 

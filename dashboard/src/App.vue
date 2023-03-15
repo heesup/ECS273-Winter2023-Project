@@ -28,7 +28,6 @@ export default {
         
         <v-col cols="" offset="">
           <BarPlotView/>
-          <!-- <img src="./components/BarPlotView.png" height="300"> -->
         </v-col>
       </v-row>
 
@@ -36,24 +35,19 @@ export default {
         <v-col offset="3" style="height: 50vh">
           <!-- <Notes msg="This message is showcasing how to pass down the props"/> -->
           <ParallelPlotView/>
-          <!-- <img src="./components/ParallelPlotView.png" width="600"> -->
         </v-col>
       </v-row>
-    
     </v-col>
     
     <v-col cols="" offset="3">
       <v-row no-gutters>
-        <v-col style="height: 90vh">
+        <v-col style="height: 90vh" >
           <SimulationView/>
-          <!-- <img src="./components/SimulationView.png" height="600"> -->
         </v-col>
       </v-row>
     </v-col>
-
   </v-row>
   
-
 
 
   </v-container>
