@@ -9,6 +9,7 @@ import os
 
 from utils import load_dataset, filter_dataset
 from lifelines import KaplanMeierFitter
+from humanize import naturalsize
 
 
 def processBarChart(method: str = 'failure') -> tuple[list[dict], list[int]]:
@@ -142,6 +143,58 @@ def processKMSurvivalCurveData():
 
     y: np.ndarray = res_df['MFG']
     return res_df.to_dict(orient='records'), list(y.drop_duplicates())
+
+
+def processKMSurvivalCurveSerialData(manufacturer):
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(root_dir, 'data/pdsurv_2020_2022.csv')
+    pdsurv = pd.read_csv(csv_path)
+    print('[INFO] Data load count : ', pdsurv.count())
+
+    YEARS = 365.25
+    res_df = pd.DataFrame(columns=['MFG', 'label', 'x', 'y', 'y_upper', 'y_lower'])
+
+    mask = pdsurv['manufacturer'] == manufacturer
+    gcols = ["model_introduced", "model_capacity", "model"]
+
+    for group, grouped_df in pdsurv[mask].groupby(gcols):
+
+        # Get last model value
+        model_introduced, model_capacity, model = group
+
+        model_list = model.split()
+
+        if(len(model_list) > 1) and  ( manufacturer == 'Seagate' or manufacturer == 'Hitachi' or manufacturer == 'TOSHIBA' or manufacturer == 'WDC') :
+            model = model_list[-1]
+            if model == 'HN' and len(model) == 2 and manufacturer == 'Seagate':
+                model = model_list[0]
+            
+            if model == 'SSD' and manufacturer == 'Seagate':
+                model = manufacturer+model
+
+        if len(grouped_df) < 100:
+            # skip small sample groups
+            continue
+
+        label = f"{model} ({naturalsize(model_capacity)}, {model_introduced[:4]})"
+
+        kmf = KaplanMeierFitter()
+        kmf.fit(grouped_df['duration'] / YEARS, grouped_df['failure'])
+
+        confidence_intervals = kmf.confidence_interval_
+
+        x = kmf.survival_function_.index.values
+        y = kmf.survival_function_['KM_estimate'].values
+        y_upper = confidence_intervals['KM_estimate_upper_0.95'].values
+        y_lower = confidence_intervals['KM_estimate_lower_0.95'].values
+
+        for i in range(len(x)):
+            new_row = {'MFG': manufacturer, 'label': label, 'x': x[i], 'y': y[i], 'y_upper': y_upper[i], 'y_lower': y_lower[i]}
+            res_df.loc[len(res_df)] = new_row
+
+    y: np.ndarray = res_df['label']
+    return res_df.to_dict(orient='records'), list(y.drop_duplicates())
+
 
 # Load dataset globally
 dataset = load_dataset()
