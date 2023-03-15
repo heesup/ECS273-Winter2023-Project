@@ -25,6 +25,14 @@ interface DataPoint {
     CI_right: number;
 }
 
+interface HddLifeData{
+    MFG:string;
+    x:number;
+    y:number;
+    y_lower:number;
+    y_upper:number;
+}
+
 // Computed property: https://vuejs.org/guide/essentials/computed.html
 // Lifecycle in vue.js: https://vuejs.org/guide/essentials/lifecycle.html#lifecycle-diagram
 
@@ -32,10 +40,10 @@ export default {
     data() {
         // Here we define the local states of this component. If you think the component as a class, then these are like its private variables.
         return {
-            points: [] as ScatterPoint[], // "as <Type>" is a TypeScript expression to indicate what data structures this variable is supposed to store.
+            points: [] as HddLifeData[], // "as <Type>" is a TypeScript expression to indicate what data structures this variable is supposed to store.
             clusters: [] as string[],
             size: { width: 0, height: 0 } as ComponentSize,
-            margin: {left: 40, right: 20, top: 20, bottom: 60} as Margin,
+            margin: {left: 40, right: 20, top: 20, bottom: 40} as Margin,
             MFGs: ['Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS'] as string[],
             selectedMFG: "Seagate" as string,
             selectedCapacity: 0 as number,
@@ -49,17 +57,20 @@ export default {
         }
     },
     created() {
-        // fetch the data via API request when we init this component. This will only get called once.
-        // In axios anything we send back in the response are always bound to the "data" property.
-        axios.get(`${server}/fetchExample`)
-            .then(resp => { // check out the app.py in ./server/ to see the format
-                this.points = resp.data.data; 
-                this.clusters = resp.data.clusters;
-                return true;
-            })
-            .catch(error => console.log(error));
+        this.getData(this.selectedMFG)
     },
     methods: {
+        getData(method: string) {
+            // fetch the data via API request when we init this component. This will only get called once.
+            // In axios anything we send back in the response are always bound to the "data" property.
+            axios.get(`${server}/fetchKMSurvivalCurveData`)
+                .then(resp => { // check out the app.py in ./server/ to see the format
+                    this.points = resp.data.data; 
+                    this.clusters = resp.data.clusters;
+                    return true;
+                })
+                .catch(error => console.log(error));
+        },
         onResize() {  // record the updated size of the target element
             let target = this.$refs.scatterContainer as HTMLElement
             if (target === undefined) return;
@@ -69,14 +80,15 @@ export default {
             // select the svg tag so that we can insert(render) elements, i.e., draw the chart, within it.
             let chartContainer = d3.select('#simulation-svg')
         
-            const data: DataPoint[] = [
-            { x: 0, y: 0, CI_left:.1, CI_right:.1},
-            { x: 1, y: 1, CI_left:.1, CI_right:.1},
-            { x: 2, y: 3, CI_left:.1, CI_right:.1},
-            { x: 3, y: 2, CI_left:.1, CI_right:.1},
-            { x: 4, y: 4, CI_left:.1, CI_right:.1},
-            { x: 5, y: 3, CI_left:.1, CI_right:.1},
-            ];
+            // const data: DataPoint[] = [
+            // { x: 0, y: 0, CI_left:.1, CI_right:.1},
+            // { x: 1, y: 1, CI_left:.1, CI_right:.1},
+            // { x: 2, y: 3, CI_left:.1, CI_right:.1},
+            // { x: 3, y: 2, CI_left:.1, CI_right:.1},
+            // { x: 4, y: 4, CI_left:.1, CI_right:.1},
+            // { x: 5, y: 3, CI_left:.1, CI_right:.1},
+            // ];
+            const data = this.points
 
             // Set the dimensions and margins of the graph
             
@@ -108,17 +120,17 @@ export default {
             .append("g")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(xScale));
-
             svg.append("g").call(d3.axisLeft(yScale));
 
             const area = d3
-            .area<DataPoint>()
+            .area<HddLifeData>()
             .x(function(d) { return xScale(d.x) })
-            .y0(function(d) { return yScale(d.y - d.CI_right) })
-            .y1(function(d) { return yScale(d.y + d.CI_left) })
+            .y0(function(d) { return yScale(d.y - d.y_lower) })
+            .y1(function(d) { return yScale(d.y + d.y_upper) })
 
-            let clusterLabels: string[] = ['Seagate']
+            let clusterLabels: string[] = this.clusters
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
+
             // Show confidence interval
             svg.append("path")
             .datum(data)
@@ -130,7 +142,7 @@ export default {
 
             // Define the line function
             const line = d3
-            .line<DataPoint>()
+            .line<HddLifeData>()
             .x((d) => xScale(d.x))
             .y((d) => yScale(d.y));
 
@@ -145,14 +157,14 @@ export default {
 
 
             const xLabel = chartContainer.append('g')
-                .attr('transform', `translate(${this.size.width / 2}, ${this.size.height - this.margin.top - 15})`)
+                .attr('transform', `translate(${(this.size.width - this.margin.left) / 2}, ${this.size.height - 15})`)
                 .append('text')
                 .text('Years')
                 .style('font-size', '.5rem')
                 .style('text-anchor', 'middle')
 
             const yLabel = chartContainer.append('g')
-                .attr('transform', `translate(${this.margin.left-25}, ${this.size.height / 2 - this.margin.top}) rotate(-90)`)
+                .attr('transform', `translate(${this.margin.left-25}, ${(this.size.height-this.margin.top) / 2}) rotate(-90)`)
                 .append('text')
                 .text('Survival %')
                 .style('font-size', '.5rem')
@@ -165,7 +177,7 @@ export default {
             let legendContainer = d3.select('#sim-legend-svg')
 
             //let clusterLabels: string[] = this.store.clusters.map((cluster: string, idx: number) => `${cluster[0]}`)
-            let clusterLabels: string[] = ['Seagate']
+            let clusterLabels: string[] = this.clusters
 
             function removeDuplicates(arr:string[]) {
                 return arr.filter((item, index) => arr.indexOf(item) === index);
