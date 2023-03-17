@@ -4,7 +4,11 @@ import axios from 'axios';
 import { isEmpty, debounce } from 'lodash';
 import { server } from '../helper';
 
+import { mapState, storeToRefs } from 'pinia'; 
 import { Point, ComponentSize, Margin } from '../types';
+import { useParallelStore } from '../stores/parallelCoordinate';
+import { thresholdScott } from "d3";
+
 // A "extends" B means A inherits the properties and methods from B.
 interface ScatterPoint extends Point{ 
     cluster: string;
@@ -27,6 +31,8 @@ interface DataPoint {
 
 interface HddLifeData{
     MFG:string;
+    label?:string;
+    capacity?:number;
     x:number;
     y:number;
     y_lower:number;
@@ -37,6 +43,13 @@ interface HddLifeData{
 // Lifecycle in vue.js: https://vuejs.org/guide/essentials/lifecycle.html#lifecycle-diagram
 
 export default {
+    setup() { // Composition API syntax
+        const store = useParallelStore()
+        // Alternative expression from computed
+        return {
+            store, // Return store as the local state, but when you update the property value, the store is also updated.
+        }
+    },
     data() {
         // Here we define the local states of this component. If you think the component as a class, then these are like its private variables.
         return {
@@ -45,16 +58,15 @@ export default {
             size: { width: 0, height: 0 } as ComponentSize,
             margin: {left: 50, right: 20, top: 20, bottom: 40} as Margin,
             MFGs: ['Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS'] as string[],
-            selectedMFG: "Seagate" as string,
+            //selectedMFG: "Seagate" as string,
             selectedCapacity: 0 as number,
-            useMonth:0,
+            capacityList:[] as any[],
+            capacityListLen:1 as number,
+            useMonth:18,
         }
     },
     computed: {
-        // Re-render the chart whenever the window is resized or the data changes (and data is non-empty)
-        rerender() {
-            return (!isEmpty(this.points)) && this.size
-        }
+        ...mapState(useParallelStore, ['selectedMFG']) // Traditional way to map the store state to the local state
     },
     created() {
         this.getData(this.selectedMFG)
@@ -63,15 +75,33 @@ export default {
         getData(method: string) {
             // fetch the data via API request when we init this component. This will only get called once.
             // In axios anything we send back in the response are always bound to the "data" property.
-            axios.get(`${server}/fetchKMSurvivalCurveData`)
-            //axios.get(`${server}/fetchKMSurvivalCurveSerialData?manufacturer=Seagate`)
+            let api_addr:string;
+            if(method ==='All'){
+                api_addr = `${server}/fetchKMSurvivalCurveData`
+                axios.get(api_addr)
                 .then(resp => { // check out the app.py in ./server/ to see the format
                     this.points = resp.data.data; 
                     this.clusters = resp.data.clusters;
-                    console.log(resp.data.data)
+                    //console.log(resp.data.data)
+                    this.capacityList = []
+                    this.capacityListLen = 1
                     return true;
                 })
                 .catch(error => console.log(error));
+            }else{
+                api_addr = `${server}/fetchKMSurvivalCurveSerialData?manufacturer=${method}`
+                axios.get(api_addr)
+                .then(resp => { // check out the app.py in ./server/ to see the format
+                    this.points = resp.data.data; 
+                    this.clusters = resp.data.clusters;
+                    this.capacityList = resp.data.capacity_clusters;
+                    this.capacityListLen = this.capacityList.length
+                    return true;
+                })
+                .catch(error => console.log(error));
+            }
+            console.log(api_addr)
+
         },
         onResize() {  // record the updated size of the target element
             let target = this.$refs.scatterContainer as HTMLElement
@@ -79,17 +109,10 @@ export default {
             this.size = { width: target.clientWidth, height: target.clientHeight };
         },
         initChart() {
+            console.log("initChart()")
             // select the svg tag so that we can insert(render) elements, i.e., draw the chart, within it.
             let chartContainer = d3.select('#simulation-svg')
-        
-            // const data: DataPoint[] = [
-            // { x: 0, y: 0, CI_left:.1, CI_right:.1},
-            // { x: 1, y: 1, CI_left:.1, CI_right:.1},
-            // { x: 2, y: 3, CI_left:.1, CI_right:.1},
-            // { x: 3, y: 2, CI_left:.1, CI_right:.1},
-            // { x: 4, y: 4, CI_left:.1, CI_right:.1},
-            // { x: 5, y: 3, CI_left:.1, CI_right:.1},
-            // ];
+
             const data = this.points
 
             // Set the dimensions and margins of the graph
@@ -104,14 +127,28 @@ export default {
             //                     ).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
             
             // group the data: I want to draw one line per group
-            const grouped_data = d3.group(data, d => d.MFG);
-            //console.log(grouped_data)
-            //console.log(arrayFromRollup)
+            let grouped_data;
+            if(this.selectedMFG === "All"){
+                grouped_data = d3.group(data, d => d.MFG);
+            }else{
+                grouped_data = d3.group(data, d => d.label);
+            }
+            
+            // console.log(grouped_data)
+            // console.log(grouped_data.keys())
             //////////////////////////////////////////
             for(let i = 0;i < this.clusters.length;i++){
                 // Append the SVG object to the body of the page
                 let mfg_data = grouped_data.get(this.clusters[i]) as HddLifeData[]
-                //console.log(mfg_data)
+
+                // if(this.capacityListLen > 1){
+                //     let mfg_data_group;
+                //     mfg_data_group = d3.group(mfg_data, d => d.capacity);
+                //     const capacity_string = this.capacityList[Math.min(Math.floor(this.selectedCapacity / this.capacityListLen), this.capacityListLen-1)];
+                //     mfg_data = mfg_data_group.get(capacity_string) as HddLifeData[]
+                //     console.log(mfg_data)
+                // }
+
                 const svg = d3
                     .select("#simulation-svg")
                     .append("svg")
@@ -123,7 +160,8 @@ export default {
                 // Create the scales for the X and Y axes
                 const xScale = d3
                 .scaleLinear()
-                .domain([0, d3.max(data, (d) => d.x) ?? 0])
+                //.domain([0, d3.max(data, (d) => d.x) ?? 0])
+                .domain([0, this.useMonth/12])
                 .range([0, width]);
 
                 const yScale = d3
@@ -202,7 +240,13 @@ export default {
             clusterLabels = removeDuplicates(clusterLabels)
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
 
-            const rectSize = 12;
+            //const rectSize = 12;
+            let rectSize = this.size.height / (clusterLabels.length*2)
+            if(rectSize > 12)
+            {
+                rectSize = 12
+            }
+            console.log(rectSize)
             const titleHeight = 20;
 
             const legendGroups = legendContainer.append('g')
@@ -220,7 +264,8 @@ export default {
 
                     select.append('text')
                         .text((d: string) => d)
-                        .style('font-size', '.7rem')
+                        //.style('font-size', '.7rem')
+                        .style('font-size', '.5rem')
                         .style('text-anchor', 'start')
                         .attr('x', rectSize)
                         .attr('y', (d: string, idx: number) => idx * rectSize * 1.5)
@@ -228,25 +273,47 @@ export default {
                         .attr('dy', '0.7rem')
                     return select
                 })
-
+            
             const title = legendContainer
                 .append('text')
                 .style('font-size', '.7rem')
                 .style('text-anchor', 'start')
                 .style('font-weight', 'bold')
-                .text('MFG')
+                //.text('MFG')
+                .text(this.selectedMFG)
                 .attr('x', 5)
                 .attr('dy', '0.7rem')
         },
+        rerender() {
+            d3.select('#simulation-svg').selectAll('*').remove() // Clean all the elements in the chart
+            d3.select('#sim-legend-svg').selectAll('*').remove()
+            this.initChart()
+            this.initLegend()
+        }
     },
     watch: {
+        // Re-render the chart whenever the window is resized or the data changes (and data is non-empty)
         rerender(newSize) {
             if (!isEmpty(newSize)) {
                 d3.select('#simulation-svg').selectAll('*').remove() // Clean all the elements in the chart
                 this.initChart()
                 this.initLegend()
             }
-        }
+        },
+        'points'(newData) {
+            if (!isEmpty(newData)) {
+                this.rerender()
+            }
+        },
+        'useMonth'() {
+            this.rerender()
+        },
+        selectedMFG(newMFG) { // function triggered when a different method is selected via dropdown menu
+            console.log(newMFG)
+            this.getData(newMFG)
+            //this.initChart()
+            //this.initLegend()
+        }   
     },
     // The following are general setup for resize events.
     mounted() {
@@ -294,26 +361,31 @@ export default {
             <label for="DELLBOSS">DELLBOSS</label>
         </div>
 
-        <div style="text-align:center;font-size: 15px;">
-            Capacity (TB)
-            <select name="" v-model="selectedCapacity">
-                <!-- Todo: Add MFG and Capacity Combination -->
-                <option value=2>2TB</option>
-                <option value=4>4TB</option>
-                <option value=6>6TB</option>
-                <option value=8>8TB</option>
-                <option value=10>10TB</option>
-                <option value=12>12TB</option>
-                <option value=14>14TB</option>
-                <option value=16>16TB</option>
-            </select>
-        </div>
-
         <v-app>
         <div>
             <!-- <v-slider label="Capacity" v-model="slider" :value="slider" track-color="grey" always-dirty min="1" max="36" thumb-label="always"/> -->
-            <v-slider label="Capacity" v-model="selectedCapacity" :value="selectedCapacity" track-color="grey" always-dirty min="1" max="36" thumb-label/>
-            <v-slider label="Month" v-model="useMonth" :value="useMonth" track-color="grey" always-dirty min="1" max="36" thumb-label/>
+            <!-- <v-slider label="Capacity" v-model="selectedCapacity" :value="selectedCapacity" track-color="grey" always-dirty min="1" max="36" thumb-label/> -->
+            
+            <v-slider label="Capacity" v-model="selectedCapacity" thumb-label 
+                    show-ticks="always">
+            <template v-slot:thumb-label="{ modelValue }" >
+            {{ capacityList[Math.min(Math.floor(modelValue / capacityListLen), capacityListLen-1)] }}
+            </template>
+            </v-slider>
+
+            <!-- <v-slider
+                label="Capacity"
+           
+                :max="capacityListLen"
+                v-model="selectedCapacity"
+                step="1"
+                show-ticks="always"
+                tick-size="4"
+                ></v-slider> -->
+
+            <v-slider label="Month" v-model="useMonth" :value="useMonth" track-color="grey" 
+                        always-dirty step="1" min="1" max="36" thumb-label hide-details
+                        />
             <!-- 임시로 -->
         </div>
         </v-app>
@@ -327,7 +399,7 @@ export default {
             </svg>
         </div>
 
-            <svg id="sim-legend-svg" width="20%" height="100%">
+            <svg id="sim-legend-svg" width="40%" height="100%">
             </svg>
      
     </div>
@@ -339,7 +411,7 @@ export default {
 <style scoped>
 .control-container{
     height: 40%;
-    width: calc(100% - 5rem); 
+    width: calc(100% - 2.5rem); 
     /* for debug */
     border: 1px;
     border-style: dashed;
@@ -348,7 +420,7 @@ export default {
 }
 .vis-container{
     height: 60%;
-    width: calc(100% - 5rem); 
+    width: calc(100% - 2.5rem); 
     /* for debug */
     border: 1px;
     border-style: dashed;
@@ -357,7 +429,7 @@ export default {
 }
 .chart-container{
     height: 100%;
-    width: calc(100% - 5rem); 
+    width: calc(100% - 2.5rem); 
     /* for debug */
     border: 1px;
     border-style: dashed;

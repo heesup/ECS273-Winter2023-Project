@@ -10,3 +10,5 @@ matplotlib
 seaborn
 statsmodels
 Pillow
+lifelines
+humanize

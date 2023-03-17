@@ -42,7 +42,7 @@ export default {
             resize,
         }
 
-        console.log(prllstore)
+        //console.log(prllstore)
     },
     computed: {
         ...mapState(useParallelStore, ['selectedMFG']) // Traditional way to map the store state to the local state
@@ -60,7 +60,7 @@ export default {
             console.log(this.prllstore.size)
         },
         initChart() {
-            console.log('init chart works')
+            // console.log('init chart works')
             var margin = {top: 50, right: 80, bottom: 40, left: 5},
                             width = this.prllstore.size.width - margin.left - margin.right,
                             height = this.prllstore.size.height - margin.top - margin.bottom;
@@ -74,7 +74,7 @@ export default {
 
             let domain_org = this.prllstore.columns;
 
-            console.log(domain_org)
+            // console.log(domain_org)
 
             const domains = d3.csvParse(domain_org.join(','));
             const domains_len = domains.length;

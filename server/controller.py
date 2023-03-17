@@ -152,11 +152,11 @@ def processKMSurvivalCurveSerialData(manufacturer):
     print('[INFO] Data load count : ', pdsurv.count())
 
     YEARS = 365.25
-    res_df = pd.DataFrame(columns=['MFG', 'label', 'x', 'y', 'y_upper', 'y_lower'])
+    res_df = pd.DataFrame(columns=['MFG', 'label','capacity', 'x', 'y', 'y_upper', 'y_lower'])
 
     mask = pdsurv['manufacturer'] == manufacturer
     gcols = ["model_introduced", "model_capacity", "model"]
-
+    capacity_category = []
     for group, grouped_df in pdsurv[mask].groupby(gcols):
 
         # Get last model value
@@ -177,7 +177,8 @@ def processKMSurvivalCurveSerialData(manufacturer):
             continue
 
         label = f"{model} ({naturalsize(model_capacity)}, {model_introduced[:4]})"
-
+        capacity = naturalsize(model_capacity)
+        capacity_category.append(capacity)
         kmf = KaplanMeierFitter()
         kmf.fit(grouped_df['duration'] / YEARS, grouped_df['failure'])
 
@@ -189,11 +190,14 @@ def processKMSurvivalCurveSerialData(manufacturer):
         y_lower = confidence_intervals['KM_estimate_lower_0.95'].values
 
         for i in range(len(x)):
-            new_row = {'MFG': manufacturer, 'label': label, 'x': x[i], 'y': y[i], 'y_upper': y_upper[i], 'y_lower': y_lower[i]}
+            new_row = {'MFG': manufacturer, 'label': label,'capacity':capacity, 'x': x[i], 'y': y[i], 'y_upper': y_upper[i], 'y_lower': y_lower[i]}
             res_df.loc[len(res_df)] = new_row
 
     y: np.ndarray = res_df['label']
-    return res_df.to_dict(orient='records'), list(y.drop_duplicates())
+    capacity_category = list(set(capacity_category))
+    capacity_category.sort(key=lambda x:float(x.split(' ')[0])*1000 if x.split(' ')[-1] =='TB' else float(x.split(' ')[0]))
+    #print(capacity_category)
+    return res_df.to_dict(orient='records'), list(y.drop_duplicates()), capacity_category
 
 
 # Load dataset globally

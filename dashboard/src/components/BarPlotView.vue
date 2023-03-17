@@ -168,7 +168,16 @@ export default {
             var xElements = d3.select("#bar-svg")
                 .selectAll("#barName")
                 .data(dataSet)
-                
+
+            
+            const xLabel = chartContainer.append('g')
+                .attr('transform', `translate(${(this.store.size.width + this.store.margin.left) / 2 }, ${this.store.size.height - 15})`)
+                .append('text')
+                .text('Capacity')
+                .style('font-size', '.5rem')
+                .style('text-anchor', 'middle')
+
+
             // xElements.enter()
             //     .append("text")
             //     .attr("class", "barName")

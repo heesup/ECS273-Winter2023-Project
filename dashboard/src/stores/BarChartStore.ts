@@ -28,7 +28,7 @@ export const useExampleStore = defineStore('exampleWithInteractions', {
                 .then(resp => {
                     //console.log(resp.data)
                     this.points = resp.data.data; // value, cluster
-                    console.log(this.points)
+                    //console.log(this.points)
                     this.clusters = resp.data.clusters; //for legend
                     //console.log(resp.data.clusters)
                     return true;

@@ -16,7 +16,8 @@ export const useParallelStore = defineStore('Parallel', {
         size: { width: 0, height: 0 } as ComponentSize,
         margin: {left: 20, right: 20, top: 60, bottom: 60} as Margin,
         manufacturers: ['All', 'Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS'] as string[],
-        selectedMFG: 'Seagate', // default value
+        //selectedMFG: 'Seagate', // default value
+        selectedMFG: 'All', // default value
     }),
     getters: {
         resize: (state) => {
@@ -34,6 +35,7 @@ export const useParallelStore = defineStore('Parallel', {
                     return true;
                 })
                 .catch(error => console.log(error));
+            //console.log(manufacturer)
         },
     }
 })

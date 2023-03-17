@@ -83,8 +83,8 @@ def fetchKMSurvivalCurveSerialData():
         try:
             # handling POST request, which is only effective when ExampleWithInteractions.vue is loaded
             manufacturer = request.args.get('manufacturer')
-            points, cluster_names = processKMSurvivalCurveSerialData(manufacturer)
-            resp = jsonify(data=points, clusters=cluster_names,)
+            points, cluster_names, capacity_clusters = processKMSurvivalCurveSerialData(manufacturer)
+            resp = jsonify(data=points, clusters=cluster_names,capacity_clusters=capacity_clusters)
             # points, cluster_names, columns = processKMSurvivalCurveData(manufacturer)
             # resp = jsonify(data=points, clusters=cluster_names, columns=columns)
             return resp
@@ -96,8 +96,8 @@ def fetchKMSurvivalCurveSerialData():
         try:
             request_context = request.get_json() # JSON object
             manufacturer = request_context['manufacturer']
-            points, cluster_names = processKMSurvivalCurveSerialData(manufacturer)
-            resp = jsonify(data=points, clusters=cluster_names,)
+            points, cluster_names,capacity_clusters = processKMSurvivalCurveSerialData(manufacturer)
+            resp = jsonify(data=points, clusters=cluster_names,capacity_clusters=capacity_clusters)
             # points, cluster_names, columns = processKMSurvivalCurveData(manufacturer)
             # resp = jsonify(data=points, clusters=cluster_names, columns=columns)
             return resp
