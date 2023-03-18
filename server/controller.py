@@ -10,6 +10,7 @@ import os
 from utils import load_dataset, filter_dataset, download_file_from_google_drive
 from lifelines import KaplanMeierFitter
 from humanize import naturalsize
+from failure_detection.survival_model import make_model
 
 
 def processBarChart(method: str = 'failure') -> tuple[list[dict], list[int]]:
@@ -204,6 +205,10 @@ def processKMSurvivalCurveSerialData(manufacturer):
     capacity_category = list(set(capacity_category))
     capacity_category.sort(key=lambda x:float(x.split(' ')[0])*1000 if x.split(' ')[-1] =='TB' else float(x.split(' ')[0]))
     #print(capacity_category)
+
+    res_df = make_model(res_df)
+    print(res_df.tail())
+
     return res_df.to_dict(orient='records'), list(y.drop_duplicates()), capacity_category
 
 
@@ -215,4 +220,5 @@ if __name__ == "__main__":
     # For debugging
     # processExample()
     #processBarChart()
-    processExample("Seagate")
+    #processExample("Seagate")
+    processKMSurvivalCurveSerialData("Seagate")

@@ -62,7 +62,7 @@ export default {
             selectedCapacity: 0 as number,
             capacityList:[] as any[],
             capacityListLen:1 as number,
-            useMonth:18,
+            useMonth:36,
         }
     },
     computed: {
@@ -100,7 +100,7 @@ export default {
                 })
                 .catch(error => console.log(error));
             }
-            //console.log(api_addr)
+            console.log(api_addr)
 
         },
         onResize() {  // record the updated size of the target element
@@ -122,6 +122,10 @@ export default {
 
 
             let clusterLabels: string[] = this.clusters
+            // if(this.capacityListLen > 1){
+            //     const capacity_string = this.capacityList[Math.min(Math.floor(this.selectedCapacity / this.capacityListLen), this.capacityListLen-1)];
+            //     clusterLabels.push(`Simulation (${capacity_string})`)
+            // }
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
             // let colorScale = d3.scaleOrdinal().domain(['All', 'Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS'] 
             //                     ).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
@@ -223,6 +227,39 @@ export default {
                 .attr("d", line)
                 
             }
+
+            // Draw Simulation
+
+
+            // Append the SVG object to the body of the page
+            let mfg_data
+            if(this.capacityListLen > 1){
+                const capacity_string = this.capacityList[Math.min(Math.floor(this.selectedCapacity / this.capacityListLen), this.capacityListLen-1)];
+                //console.log(capacity_string)
+                mfg_data = grouped_data.get(`Simulation (${capacity_string})`) as HddLifeData[]
+
+                // Show confidence interval
+                svg.append("path")
+                    .datum(mfg_data)
+                    // .attr("fill", colorScale(clusterLabels[i]) as string)
+                    .attr("fill", "#ff0000") // Manual Color
+                    .style('opacity', .5)
+                    .attr("stroke", "none")
+                    .attr("d", area)
+
+                // Add the line to the SVG object
+                svg
+                .append("path")
+                .datum(mfg_data)
+                .attr("fill", "none")
+                //.attr("stroke", colorScale(clusterLabels[i]) as string)
+                .attr("stroke","#ff0000" as string)
+                .attr("stroke-width", 5.0)
+                .attr("d", line)
+            }
+
+
+           
             
             const xLabel = chartContainer.append('g')
                 .attr('transform', `translate(${(this.size.width+this.margin.left) / 2}, ${this.size.height - 15})`)
@@ -251,8 +288,12 @@ export default {
                 return arr.filter((item, index) => arr.indexOf(item) === index);
             }
             clusterLabels = removeDuplicates(clusterLabels)
+            if(this.capacityListLen > 1){
+                const capacity_string = this.capacityList[Math.min(Math.floor(this.selectedCapacity / this.capacityListLen), this.capacityListLen-1)];
+                clusterLabels.push(`Simulation (${capacity_string})`)
+            }
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
-
+            
             //const rectSize = 12;
             let rectSize = this.size.height / (clusterLabels.length*2)
             if(rectSize > 12)
@@ -272,8 +313,19 @@ export default {
                     select.append('rect')
                         .attr('width', rectSize).attr('height', rectSize)
                         .attr('x', 5).attr('y', (d: string, idx: number) => idx * rectSize * 1.5)
-                        .style('fill', (d: string) => colorScale(d) as string)
-                        .style('opacity', .5)
+                        .style('fill', function (d: string,i:number) {
+                            if(d.search("Simulation") > -1){
+                                return "#ff0000"
+                            }else{
+                                return colorScale(d) as string
+                            }
+                        })
+                        .style('opacity',function (d: string,i:number) {
+                            if(d.search("Simulation") > -1){
+                                return 1
+                            }else{
+                                return 0.5
+                            }})
 
                     select.append('text')
                         .text((d: string) => d)
@@ -401,7 +453,7 @@ export default {
                 ></v-slider> -->
 
             <v-slider label="Month" v-model="useMonth" :value="useMonth" track-color="grey" 
-                        always-dirty step="1" min="1" max="36" thumb-label hide-details
+                        always-dirty step="1" min="1" max="72" thumb-label hide-details
                         />
             <!-- 임시로 -->
         </div>
