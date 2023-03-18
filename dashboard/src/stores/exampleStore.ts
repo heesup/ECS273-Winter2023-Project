@@ -8,14 +8,12 @@ interface ScatterPoint extends Point{
     cluster: string;
 }
 
-export const useExampleStore = defineStore('exampleWithInteractions', {
+export const useExampleStore = defineStore('useExampleStore', {
     state: () => ({
         points: [] as ScatterPoint[],
         clusters: [] as string[],
         size: { width: 0, height: 0 } as ComponentSize,
         margin: { left: 20, right: 20, top: 20, bottom: 40 } as Margin,
-        methods: ['PCA', 't-SNE'] as string[],
-        selectedMethod: 'PCA', // default value
     }),
     getters: {
         resize: (state) => {
@@ -23,10 +21,11 @@ export const useExampleStore = defineStore('exampleWithInteractions', {
         }
     },
     actions: {
-        async fetchExample(method: string) { // same API request but in slightly different syntax when it's declared as a method in a component or an action in the store.
+        async fetchExample(method: string="All") { // same API request but in slightly different syntax when it's declared as a method in a component or an action in the store.
             axios.post(`${server}/fetchExample`, {method: method})
                 .then(resp => {
                     this.points = resp.data.data;
+                    //console.log(this.points)
                     this.clusters = resp.data.clusters;
                     return true;
                 })

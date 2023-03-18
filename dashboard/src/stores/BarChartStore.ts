@@ -8,7 +8,7 @@ interface ScatterPoint extends Point{
     cluster: string;
 }
 
-export const useExampleStore = defineStore('exampleWithInteractions', {
+export const useBarChartStore = defineStore('useBarChartStore', {
     state: () => ({
         points: [] as BarPoint[],
         clusters: [] as string[],

@@ -100,16 +100,16 @@ export default {
                 })
                 .catch(error => console.log(error));
             }
-            console.log(api_addr)
+            //console.log(api_addr)
 
         },
         onResize() {  // record the updated size of the target element
-            let target = this.$refs.scatterContainer as HTMLElement
+            let target = this.$refs.simulationContainer as HTMLElement
             if (target === undefined) return;
             this.size = { width: target.clientWidth, height: target.clientHeight };
         },
         initChart() {
-            console.log("initChart()")
+            // console.log("initChart()")
             // select the svg tag so that we can insert(render) elements, i.e., draw the chart, within it.
             let chartContainer = d3.select('#simulation-svg')
 
@@ -137,10 +137,62 @@ export default {
             // console.log(grouped_data)
             // console.log(grouped_data.keys())
             //////////////////////////////////////////
-            for(let i = 0;i < this.clusters.length;i++){
-                // Append the SVG object to the body of the page
-                let mfg_data = grouped_data.get(this.clusters[i]) as HddLifeData[]
 
+            // Create the scales for the X and Y axes
+            const xScale = d3
+            .scaleLinear()
+            //.domain([0, d3.max(mfg_data, (d) => d.x) ?? 0])
+            .domain([0, this.useMonth/12])
+            .range([0, width]);
+
+            const yScale = d3
+            .scaleLinear()
+            .domain([0, d3.max(data, (d) => d.y) ?? 0])
+            //.domain([d3.min(mfg_data, (d) => d.y)*.7 ?? 0, d3.max(mfg_data, (d) => d.y) ?? 0])
+            .range([height, 0]);
+
+            const svg = d3
+                    .select("#simulation-svg")
+                    .append("svg")
+                    .attr("width", width + this.margin.left + this.margin.right)
+                    .attr("height", height + this.margin.top + this.margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
+
+            // Add the X and Y axes to the SVG object
+            svg
+            .append("g")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(xScale));
+            
+            svg.append("g").call(d3.axisLeft(yScale)
+                        .tickFormat(d=>d*100.0+"%")
+                        );
+
+            // Define the area function
+            const area = d3
+                .area<HddLifeData>()
+                .x(function(d) { return xScale(d.x) })
+                .y0(function(d) { return yScale(d.y_lower) })
+                .y1(function(d) { return yScale(d.y_upper) })
+            // Define the line function
+            const line = d3
+                    .line<HddLifeData>()
+                    .x((d) => xScale(d.x))
+                    .y((d) => yScale(d.y));
+
+            for(let i = 0;i < this.clusters.length;i++){
+
+                // if(this.capacityListLen > 1){
+                //     const capacity_string = this.capacityList[Math.min(Math.floor(this.selectedCapacity / this.capacityListLen), this.capacityListLen-1)];
+                //     console.log(capacity_string)
+                //     console.log(this.clusters[i].search(capacity_string))
+                //     if(this.clusters[i].search(capacity_string) <= 0){
+                //         continue
+                //     }
+                // }
+
+            
                 // if(this.capacityListLen > 1){
                 //     let mfg_data_group;
                 //     mfg_data_group = d3.group(mfg_data, d => d.capacity);
@@ -149,57 +201,17 @@ export default {
                 //     console.log(mfg_data)
                 // }
 
-                const svg = d3
-                    .select("#simulation-svg")
-                    .append("svg")
-                    .attr("width", width + this.margin.left + this.margin.right)
-                    .attr("height", height + this.margin.top + this.margin.bottom)
-                    .append("g")
-                    .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
-
-                // Create the scales for the X and Y axes
-                const xScale = d3
-                .scaleLinear()
-                //.domain([0, d3.max(data, (d) => d.x) ?? 0])
-                .domain([0, this.useMonth/12])
-                .range([0, width]);
-
-                const yScale = d3
-                .scaleSymlog()
-                .domain([0, d3.max(data, (d) => d.y) ?? 0])
-                .range([height, 0]);
-
-                // Add the X and Y axes to the SVG object
-                svg
-                .append("g")
-                .attr("transform", `translate(0,${height})`)
-                .call(d3.axisBottom(xScale));
-                
-                svg.append("g").call(d3.axisLeft(yScale)
-                            .tickFormat(d=>d*100.0+"%")
-                            );
-
-
-                const area = d3
-                .area<HddLifeData>()
-                .x(function(d) { return xScale(d.x) })
-                .y0(function(d) { return yScale(d.y_lower) })
-                .y1(function(d) { return yScale(d.y_upper) })
+                // Append the SVG object to the body of the page
+                let mfg_data = grouped_data.get(this.clusters[i]) as HddLifeData[]
 
                 // Show confidence interval
                 svg.append("path")
-                .datum(mfg_data)
-                .attr("fill", colorScale(clusterLabels[i]) as string)
-                //.attr("fill", "#cce5df")
-                .style('opacity', .5)
-                .attr("stroke", "none")
-                .attr("d", area)
-
-                // Define the line function
-                const line = d3
-                .line<HddLifeData>()
-                .x((d) => xScale(d.x))
-                .y((d) => yScale(d.y));
+                    .datum(mfg_data)
+                    .attr("fill", colorScale(clusterLabels[i]) as string)
+                    //.attr("fill", "#cce5df")
+                    .style('opacity', .5)
+                    .attr("stroke", "none")
+                    .attr("d", area)
 
                 // Add the line to the SVG object
                 svg
@@ -209,6 +221,7 @@ export default {
                 .attr("stroke", colorScale(clusterLabels[i]) as string)
                 .attr("stroke-width", 1.5)
                 .attr("d", line)
+                
             }
             
             const xLabel = chartContainer.append('g')
@@ -246,7 +259,7 @@ export default {
             {
                 rectSize = 12
             }
-            console.log(rectSize)
+            //console.log(rectSize)
             const titleHeight = 20;
 
             const legendGroups = legendContainer.append('g')
@@ -296,6 +309,7 @@ export default {
         rerender(newSize) {
             if (!isEmpty(newSize)) {
                 d3.select('#simulation-svg').selectAll('*').remove() // Clean all the elements in the chart
+                d3.select('#sim-legend-svg').selectAll('*').remove()
                 this.initChart()
                 this.initLegend()
             }
@@ -308,8 +322,11 @@ export default {
         'useMonth'() {
             this.rerender()
         },
+        'selectedCapacity'() {
+            this.rerender()
+        },
         selectedMFG(newMFG) { // function triggered when a different method is selected via dropdown menu
-            console.log(newMFG)
+            //console.log(newMFG)
             this.getData(newMFG)
             //this.initChart()
             //this.initLegend()
@@ -392,7 +409,7 @@ export default {
     </div>
 
     <div class="vis-container d-flex" > 
-        <div class="chart-container d-flex" ref="scatterContainer">
+        <div class="chart-container d-flex" ref="simulationContainer">
                 <!-- <img src="src/components/Screenshot 2023-03-14 at 1.37.43 PM.png" width="475"> -->
             <svg id="simulation-svg" width="100%" height="100%">
                 <!-- all the visual elements we create in initChart() will be inserted here in DOM-->

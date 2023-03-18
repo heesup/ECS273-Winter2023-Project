@@ -19,10 +19,11 @@ def fetchExample():
         resp = jsonify(data=points, clusters=cluster_names)
         return resp
     else: 
-    # handling POST request, which is only effective when ExampleWithInteractions.vue is loaded
+        # handling POST request, which is only effective when ExampleWithInteractions.vue is loaded
         request_context = request.get_json() # JSON object
-        method = request_context['method']
-        points, cluster_names = processExample(method)
+        mfg = request_context['method']
+        #print("fetchExample() " + mfg, flush=True)
+        points, cluster_names = processExample(mfg)
         resp = jsonify(data=points, clusters=cluster_names)
         return resp
 

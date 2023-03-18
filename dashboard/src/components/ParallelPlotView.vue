@@ -57,7 +57,7 @@ export default {
             let target = this.$refs.prllContainer as HTMLElement
             if (target === undefined) return;
             this.prllstore.size = { width: target.clientWidth, height: target.clientHeight };
-            console.log(this.prllstore.size)
+            //console.log(this.prllstore.size)
         },
         initChart() {
             // console.log('init chart works')

@@ -4,7 +4,10 @@ import axios from 'axios';
 import { isEmpty, debounce } from 'lodash';
 import { server } from '../helper';
 
+import { mapState, storeToRefs } from 'pinia'; 
 import { Point, ComponentSize, Margin } from '../types';
+import { useParallelStore } from '../stores/parallelCoordinate';
+import { useExampleStore } from '../stores/exampleStore';
 interface ScatterPoint extends Point{
     cluster: string;
 }
@@ -15,6 +18,15 @@ interface ScatterPoint extends Point{
 */
 
 export default {
+    setup() { // Composition API syntax
+        const mfg_store = useParallelStore()
+        const ex_store = useExampleStore()
+        // Alternative expression from computed
+        return {
+            mfg_store: mfg_store, // Return store as the local state, but when you update the property value, the store is also updated.
+            ex_store: ex_store,
+        }
+    },
     data() {
         return {
             points: [] as ScatterPoint[],
@@ -24,18 +36,10 @@ export default {
         }
     },
     computed: {
-        rerender() {
-            return (!isEmpty(this.points))  && this.size
-        }
+        ...mapState(useParallelStore, ['selectedMFG']) // Traditional way to map the store state to the local state
     },
     created() {
-        axios.get(`${server}/fetchExample`)
-            .then(resp => {
-                this.points = resp.data.data;
-                this.clusters = resp.data.clusters;
-                return true;
-            })
-            .catch(error => console.log(error));
+        this.ex_store.fetchExample("All");
     },
     methods: {
         onResize() {
@@ -44,10 +48,12 @@ export default {
             this.size = { width: target.clientWidth, height: target.clientHeight };
         },
         initChart() {
+            console.log("Init #scatter-svg " + this.selectedMFG)
+            console.log("this.points.length:"+this.ex_store.points.length)
             let chartContainer = d3.select('#scatter-svg')
 
-            let xExtents = d3.extent(this.points.map((d: ScatterPoint) => d.posX as number)) as [number, number]
-            let yExtents = d3.extent(this.points.map((d: ScatterPoint) => d.posY as number)) as [number, number]
+            let xExtents = d3.extent(this.ex_store.points.map((d: ScatterPoint) => d.posX as number)) as [number, number]
+            let yExtents = d3.extent(this.ex_store.points.map((d: ScatterPoint) => d.posY as number)) as [number, number]
 
             let xScale = d3.scaleLinear()
                 .range([this.margin.left, this.size.width - this.margin.right])
@@ -57,12 +63,12 @@ export default {
                 .range([this.size.height - this.margin.bottom, this.margin.top])
                 .domain(yExtents)
 
-            let clusters: string[] = this.clusters.map((cluster: string, idx: number) => String(idx))
+            let clusters: string[] = this.ex_store.clusters.map((cluster: string, idx: number) => String(idx))
             let colorScale = d3.scaleOrdinal().domain(clusters).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
 
             const points = chartContainer.append('g')
                 .selectAll('circle')
-                .data<ScatterPoint>(this.points)
+                .data<ScatterPoint>(this.ex_store.points)
                 .join('circle')
                 .attr('cx', (d: ScatterPoint) => xScale(d.posX))
                 .attr('cy', (d: ScatterPoint) => yScale(d.posY))
@@ -114,7 +120,7 @@ export default {
             let legendContainer = d3.select('#scatter-legend-svg')
 
             //let clusterLabels: string[] = this.clusters.map((cluster: string, idx: number) => `Cultivar ${idx+1}`)
-            let clusterLabels: string[] = this.clusters.map((cluster: string, idx: number) => `${cluster}`)
+            let clusterLabels: string[] = this.ex_store.clusters.map((cluster: string, idx: number) => `${cluster}`)
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
 
             const rectSize = 12;
@@ -176,10 +182,16 @@ export default {
                 .style('font-size', '.7rem')
                 .style('text-anchor', 'start')
                 .style('font-weight', 'bold')
-                .text('HDD State')
+                .text(this.selectedMFG)
                 .attr('x', 5)
                 .attr('dy', '0.7rem')
-        }
+        },
+        rerender() {
+            d3.select('#scatter-svg').selectAll('*').remove()
+            d3.select('#scatter-legend-svg').selectAll('*').remove()
+            this.initChart()
+            this.initLegend()
+        },
     },
     watch: { // updated because a legend is added.
         rerender(newSize) {
@@ -189,7 +201,16 @@ export default {
                 this.initChart()
                 this.initLegend()
             }
-        }
+        },
+        'ex_store.points'(newData) {
+            //console.log(this.ex_store.points)
+            if (!isEmpty(newData)) {
+                this.rerender()
+            }
+        },
+        selectedMFG(newMFG) { // function triggered when a different method is selected via dropdown menu
+            this.ex_store.fetchExample(newMFG)
+        } 
     },
     mounted() {
         window.addEventListener('resize', debounce(this.onResize, 100))

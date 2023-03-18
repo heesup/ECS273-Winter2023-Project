@@ -14,11 +14,11 @@ interface ScatterPoint extends Point{
 // Computed property: https://vuejs.org/guide/essentials/computed.html
 // Lifecycle in vue.js: https://vuejs.org/guide/essentials/lifecycle.html#lifecycle-diagram
 import { mapState, storeToRefs } from 'pinia'; 
-import { useExampleStore } from '../stores/BarChartStore';
+import { useBarChartStore } from '../stores/BarChartStore';
 
 export default {
     setup() { // Composition API syntax
-        const store = useExampleStore()
+        const store = useBarChartStore()
         // Alternative expression from computed
         const { resize } = storeToRefs(store);
         return {
@@ -27,7 +27,7 @@ export default {
         }
     },
     computed: {
-        ...mapState(useExampleStore, ['selectedMethod']) // Traditional way to map the store state to the local state
+        ...mapState(useBarChartStore, ['selectedMethod']) // Traditional way to map the store state to the local state
     },
     created() {
         this.store.fetchExample(this.selectedMethod);
@@ -39,12 +39,13 @@ export default {
             this.store.size = { width: target.clientWidth, height: target.clientHeight }; // How you update the store
         },
         initChart() {
-
             let chartContainer = d3.select('#bar-svg')
 
 
             let clusters: string[] = this.store.clusters.map((cluster: string, idx: number) => cluster[0])
             let colorScale = d3.scaleOrdinal().domain(clusters).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
+            // let colorScale = d3.scaleOrdinal().domain(['All', 'Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS'] 
+            //                     ).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
             
             var svgHeight = this.store.size.height;
             var dataSet = this.store.points;
@@ -199,6 +200,8 @@ export default {
             }
             clusterLabels = removeDuplicates(clusterLabels)
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
+            // let colorScale = d3.scaleOrdinal().domain(['All', 'Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS'] 
+            //                     ).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
 
             const rectSize = 12;
             const titleHeight = 20;

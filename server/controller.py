@@ -39,48 +39,46 @@ def processBarChart(method: str = 'failure') -> tuple[list[dict], list[int]]:
     return table.to_dict(orient='records'), list(table.index)
 
 
-def processExample(method: str = 'PCA') -> tuple[list[dict], list[int]]:
+def processExample(mfg: str = 'All') -> tuple[list[dict], list[int]]:
 
     global dataset
     data = dataset.copy()
-
+    if mfg == "All":
+        pass
+    elif mfg in ['Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS']:
+        data = data[data["MFG"] == mfg]
+    else:
+        raise ValueError("Requested a method that is not supported")
+    #print(data.head())
+    #print(data.shape, flush=True)
+    data.reset_index(drop=True, inplace=True) # Solve Missing index problem
+    
     res =  [False for i in range(len(data.columns))]
     for i,col in enumerate(data.columns):
         if 'smart' in col:
             res[i] = True
     X: np.ndarray = data.iloc[:,res] # From smart_1_normalized
-    # print(X.head())
 
     y: np.ndarray = data["failure"]
     #feat_names: np.ndarray = data.feature_names
     target_names: np.ndarray = ["healthy","failure"]
 
-    if method == 'PCA':
-        Z, PCs = perform_PCA(X)
-        PC1 = list(PCs[0])
-        PC2 = list(PCs[1])
-        i1 = PC1.index(max(PCs[0]))
-        i2 = PC2.index(max(PCs[1]))
-        # print(data.iloc[:,6:-1].columns[i1])
-        # print(data.iloc[:,6:-1].columns[i2])
-        #print(PCs)
-    elif method == 't-SNE':
-        Z = perform_TSNE(X, perplexity = 10)
-    else:
-        raise ValueError("Requested a method that is not supported")
-    if 0:
-        points = pd.DataFrame(Z, columns=['posX', 'posY'])
-        points['cluster'] = y
-    else:
-        # For debug speed-up
-        if 0:
-            test_sample = 100
-            points = pd.DataFrame(Z[:test_sample], columns=['posX', 'posY'])
-            points['cluster'] = y[:test_sample]
-        else:
-            points = pd.DataFrame(Z, columns=['posX', 'posY'])
-            points['cluster'] = y
+    Z, PCs = perform_PCA(X)
+    
+    PC1 = list(PCs[0])
+    PC2 = list(PCs[1])
+    i1 = PC1.index(max(PCs[0]))
+    i2 = PC2.index(max(PCs[1]))
+    # print(data.iloc[:,6:-1].columns[i1])
+    # print(data.iloc[:,6:-1].columns[i2])
+    #print(PCs)
 
+    points = pd.DataFrame(Z, columns=['posX', 'posY'])
+    #print("************y***********",flush=True)
+    #print(y,flush=True)
+    points['cluster'] = y
+    #print(points.shape, flush=True)
+    #print(points, flush=True)
     # How to JSON serialize pandas dataframes and numpy arrays
     return points.to_dict(orient='records'), list(target_names)
 
@@ -207,4 +205,5 @@ dataset = filter_dataset(dataset)
 if __name__ == "__main__":
     # For debugging
     # processExample()
-    processBarChart()
+    #processBarChart()
+    processExample("Seagate")
