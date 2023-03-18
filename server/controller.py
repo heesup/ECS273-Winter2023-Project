@@ -7,7 +7,7 @@ from resources.hd_processing_template import perform_PCA, perform_TSNE
 #from resources.time_processing_template import prepare_time_template_data, apply_arima, apply_sarima
 import os
 
-from utils import load_dataset, filter_dataset
+from utils import load_dataset, filter_dataset, download_file_from_google_drive
 from lifelines import KaplanMeierFitter
 from humanize import naturalsize
 
@@ -114,6 +114,15 @@ def processKMSurvivalCurveData():
     root_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(root_dir, 'data/pdsurv_2020_2022.csv')
 
+    if os.path.exists(csv_path):
+        pass
+    else:
+        # Download
+        print(f"Download {csv_path}",flush=True)
+        file_id = '1-0RfmKMbE2eXQ_tj9hnGdBT-RxychNz0'
+        download_file_from_google_drive(file_id, csv_path)
+        print(f"...Done!",flush=True)
+        
     pdsurv = pd.read_csv(csv_path)
     grp_pdsurv = pdsurv.groupby("manufacturer")
     YEARS = 365.25

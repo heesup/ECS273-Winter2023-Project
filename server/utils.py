@@ -1,9 +1,49 @@
 import os
 import pandas as pd
+import requests
+
+def download_file_from_google_drive(id, destination):
+    URL = "https://docs.google.com/uc?export=download"
+
+    session = requests.Session()
+
+    response = session.get(URL, params = { 'id' : id , 'confirm': 1 }, stream = True)
+    token = get_confirm_token(response)
+
+    if token:
+        params = { 'id' : id, 'confirm' : token }
+        response = session.get(URL, params = params, stream = True)
+
+    save_response_content(response, destination)    
+
+def get_confirm_token(response):
+    for key, value in response.cookies.items():
+        if key.startswith('download_warning'):
+            return value
+
+    return None
+
+def save_response_content(response, destination):
+    CHUNK_SIZE = 32768
+
+    with open(destination, "wb") as f:
+        for chunk in response.iter_content(CHUNK_SIZE):
+            if chunk: # filter out keep-alive new chunks
+                f.write(chunk)
 
 def load_dataset(filter=False) -> pd.DataFrame:
     root_dir = os.path.dirname(os.path.abspath(__file__))
     csv_path = os.path.join(root_dir,"data/mod_data_Q1234_20_21_22.csv")
+    if os.path.exists(csv_path):
+        pass
+    else:
+        # Download
+        print(f"Download {csv_path}",flush=True)
+        file_id = '1UVrnYc6ruKVp-HxNmaPGnX8_XxHAzm3s'
+        destination = 'DESTINATION FILE ON YOUR DISK'
+        download_file_from_google_drive(file_id, csv_path)
+        print(f"...Done!",flush=True)
+
     data: dict = pd.read_csv(csv_path)
 
     if filter:
