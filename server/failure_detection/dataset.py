@@ -13,6 +13,9 @@ class HddSmartDataset(Dataset):
     def __init__(self,use_raw=True,use_normalized=True,use_mfg=True):
 
         self.data_df = load_dataset(filter=True)
+        if 0:
+            # For testing
+            self.data_df = self.data_df[0:12000]
         self.targets = self.data_df['failure']
 
         self.data_values = self.data_df

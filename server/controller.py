@@ -1,10 +1,5 @@
 import pandas as pd
 import numpy as np
-from sklearn.datasets import load_wine
-from resources.hd_processing_template import perform_PCA, perform_TSNE
-#from resources.network_process_template import contsruct_networkx
-#from resources.text_processing_template import preprocess
-#from resources.time_processing_template import prepare_time_template_data, apply_arima, apply_sarima
 import os
 
 from utils import load_dataset, filter_dataset, download_file_from_google_drive
@@ -12,6 +7,20 @@ from lifelines import KaplanMeierFitter
 from humanize import naturalsize
 from failure_detection.survival_model import make_model
 
+from sklearn.decomposition import PCA
+from sklearn import preprocessing
+
+def perform_PCA(X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    scaler = preprocessing.StandardScaler()
+    X = scaler.fit_transform(X)
+
+    pca = PCA(n_components=2)
+    pca.fit(X)  # Learn the projection matrix
+    Z = pca.transform(X) # Project the given data with the learnt projection matrix
+    
+    PC1, PC2 = pca.components_ # Since n_components = 2
+    PCs = np.vstack((PC1.reshape(1, -1), PC2.reshape(1, -1))) # Rows refer to each PC; Columns refer to each data attribute
+    return Z, PCs
 
 def processBarChart(method: str = 'failure') -> tuple[list[dict], list[int]]:
 
