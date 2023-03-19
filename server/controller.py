@@ -226,10 +226,10 @@ def processKMSurvivalCurveSerialData(manufacturer):
     capacity_category.sort(key=lambda x:float(x.split(' ')[0])*1000 if x.split(' ')[-1] =='TB' else float(x.split(' ')[0]))
     #print(capacity_category)
 
-    res_df = make_model(res_df)
+    res_df,life_exp = make_model(res_df)
     print(res_df.tail())
 
-    return res_df.to_dict(orient='records'), list(y.drop_duplicates()), capacity_category
+    return res_df.to_dict(orient='records'), list(y.drop_duplicates()), capacity_category, life_exp
 
 
 # Load dataset globally

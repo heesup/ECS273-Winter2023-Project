@@ -62,9 +62,12 @@ export default {
             selectedCapacity: "" as string,
             selectedCapacityNum:0 as number,
             capacityList:[] as any[],
-            capacityListLen:1 as number,
+            capacityListLen:0 as number,
             capacityListLabels:{} as {},
             useMonth:36,
+            life_exp:3 as number,
+            life_exp_list:[] as number[],
+            life_exp_str:"" as string,
         }
     },
     computed: {
@@ -86,7 +89,9 @@ export default {
                     this.clusters = resp.data.clusters;
                     //console.log(resp.data.data)
                     this.capacityList = []
-                    this.capacityListLen = 1
+                    this.capacityListLabels = {}
+                    this.capacityListLen = 0
+                    this.selectedCapacityNum = 0
                     return true;
                 })
                 .catch(error => console.log(error));
@@ -97,14 +102,17 @@ export default {
                     this.points = resp.data.data; 
                     this.clusters = resp.data.clusters;
                     this.capacityList = resp.data.capacity_clusters;
+                    //console.log(this.capacityList)
                     const tickLabels: { [key: number]: string } = {};
                     for (let i = 0; i < this.capacityList.length; i++) {
                         tickLabels[i] = this.capacityList[i];
                     }
                     this.capacityListLabels = tickLabels
-                    console.log(this.capacityListLabels)
                     this.selectedCapacity = this.capacityList[this.selectedCapacityNum]
                     this.capacityListLen = this.capacityList.length
+                    this.selectedCapacityNum = 0
+                    this.life_exp_list = resp.data.life_exp
+                    //console.log(this.life_exp_list)
                     return true;
                 })
                 .catch(error => console.log(error));
@@ -118,6 +126,15 @@ export default {
             this.size = { width: target.clientWidth, height: target.clientHeight };
         },
         initChart() {
+            //console.log("Init Simulation chart")
+            if(this.selectedMFG === "All"){
+                this.life_exp = 3
+            }else{
+                this.life_exp = this.life_exp_list[this.selectedCapacityNum]
+                this.selectedCapacity = this.capacityList[this.selectedCapacityNum]
+            }
+            
+
             // console.log("initChart()")
             // select the svg tag so that we can insert(render) elements, i.e., draw the chart, within it.
             let chartContainer = d3.select('#simulation-svg')
@@ -193,7 +210,7 @@ export default {
 
             for(let i = 0;i < this.clusters.length;i++){
                 // Append the SVG object to the body of the page
-                let mfg_data = grouped_data.get(this.clusters[i]) as HddLifeData[]
+                const mfg_data = grouped_data.get(this.clusters[i]) as HddLifeData[]
 
                 // Show confidence interval
                 svg.append("path")
@@ -216,11 +233,14 @@ export default {
 
             // Draw Simulation
             // Append the SVG object to the body of the page
-            let mfg_data
-            if(this.capacityListLen > 1){
+            if(this.capacityListLen > 0){
                 //console.log(capacity_string)
-                mfg_data = grouped_data.get(`Simulation (${this.selectedCapacity})`) as HddLifeData[]
-
+                const mfg_data = grouped_data.get(`Simulation (${this.selectedCapacity})`) as HddLifeData[]
+                if(this.life_exp < 20){
+                    this.life_exp_str = `Life Expectancy for ${this.selectedMFG} ${this.selectedCapacity}: ${this.life_exp.toFixed(0)} Years`
+                }else{
+                    this.life_exp_str = `Life Expectancy for ${this.selectedMFG} ${this.selectedCapacity}: More than ${this.life_exp.toFixed(0)} Years`
+                }
                 // Show confidence interval
                 svg.append("path")
                     .datum(mfg_data)
@@ -239,6 +259,8 @@ export default {
                 .attr("stroke","#ff0000" as string)
                 .attr("stroke-width", 5.0)
                 .attr("d", line)
+            }else{
+                this.life_exp_str = ""
             }
 
 
@@ -271,7 +293,7 @@ export default {
                 return arr.filter((item, index) => arr.indexOf(item) === index);
             }
             clusterLabels = removeDuplicates(clusterLabels)
-            if(this.capacityListLen > 1){
+            if(this.capacityListLen > 0){
                 clusterLabels.push(`Simulation (${this.selectedCapacity})`)
             }
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
@@ -357,15 +379,10 @@ export default {
             this.rerender()
         },
         'selectedCapacityNum'() {
-            this.selectedCapacity = this.capacityList[this.selectedCapacityNum]
-            console.log(this.selectedCapacity)
             this.rerender()
         },
         selectedMFG(newMFG) { // function triggered when a different method is selected via dropdown menu
-            //console.log(newMFG)
             this.getData(newMFG)
-            //this.initChart()
-            //this.initLegend()
         }   
     },
     // The following are general setup for resize events.
@@ -385,7 +402,6 @@ export default {
     <div class="control-container">
         <div>
             <p style="text-align:center;font-size:20px">HDD Failure Simulator</p>
-            <br>
         </div>
 
         <div class="radioMFG" style="">
@@ -414,10 +430,9 @@ export default {
             <input type="radio" name="" id="Hitachi" value="Hitachi" v-model="selectedMFG">
             <label for="Hitachi">Hitachi </label>
 
-            <input type="radio" name="" id="DELLBOSS" value="DELLBOSS" v-model="selectedMFG">
-            <label for="DELLBOSS">DELLBOSS </label>
+            <!-- <input type="radio" name="" id="DELLBOSS" value="DELLBOSS" v-model="selectedMFG">
+            <label for="DELLBOSS">DELLBOSS </label> -->
         </div>
-        <br>
         <v-app>
         <div>
             <v-slider
@@ -429,13 +444,17 @@ export default {
                 show-ticks="always"
                 tick-size="4"
                 class="tick-labels"
+                :disabled="capacityListLen===0"
                 ></v-slider>
 
+            <!-- <v-slider label="Month" v-model="useMonth" :value="useMonth" track-color="grey" 
+                        always-dirty step="1" min="1" :max="life_exp*12" thumb-label hide-details
+                        /> -->
             <v-slider label="Month" v-model="useMonth" :value="useMonth" track-color="grey" 
-                        always-dirty step="1" min="1" max="72" thumb-label hide-details
+                    always-dirty step="1" min="1" max="72" thumb-label hide-details
                         />
-            <!-- 임시로 -->
         </div>
+        <div style="text-align: center;"> {{ life_exp_str }}</div>
         </v-app>
     </div>
 
