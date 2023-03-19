@@ -107,12 +107,6 @@ export default {
                 .data(this.store.points)
                 .enter().append("rect")
                 .attr("class", "bar")
-                // .attr("x", function (d, i) {
-                //     return i * 6 + interval + offsetX; //updated offsetX
-                // })
-                // .attr("x", function (d, i) {
-                //     return xScale(i); //updated offsetX
-                // })
                 .attr("x", function (d){
                     //console.log(d.cluster[0])
                     return xScale(d.cluster[1]+d.cluster[0]) as number; // 용량 먼저
@@ -303,8 +297,8 @@ export default {
     flex-direction: row;
     flex-wrap: nowrap;
     /* for debug */
-    border: 1px;
-    border-style: dashed;
+    /* border: 1px;
+    border-style: dashed; */
 }
 
 .chart-container{
@@ -312,8 +306,8 @@ export default {
     width: calc(100% - 5rem); 
     height: 100%;
     /* for debug */
-    border: 1px;
-    border-style: dashed;
+    /* border: 1px;
+    border-style: dashed; */
 }
 
 #bar-control-container{

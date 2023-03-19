@@ -131,7 +131,7 @@ export default {
 
             // const column_name: string[] = ['Raw Read Error Rate', 'Spin-Up Time', 'Reallocated Sector Count', 'Seek Error Rate', 'Power-On Hours', 'Temperature', 'Uncorrectable Sector Count', 'Current Pending Sector Count', 'Manufacturers']
 
-            const column_name: string[] = ['Reallocated Sector Cnt', 'Reported Uncorrectable Err', 'Command Timeout', 'Uncorrectable Sector Cnt', 'Current Pending Sector Cnt', 'Manufaturer']                    
+            const column_name: string[] = ['Reallocated Sector Cnt', 'Reported Uncorrectable Err', 'Command Timeout', 'Uncorrectable Sector Cnt', 'Current Pending Sector Cnt', 'Manufacturer']                    
 
             // Draw the axis:
             const Axis = svg.selectAll("myAxis")
@@ -251,7 +251,7 @@ export default {
         </div>
         <div id="prll-control-container" class="d-flex">
             <div class="d-flex mb-4">
-                <label :style="{ fontSize: '0.7rem' }"> <strong> Select Manufaturer: </strong>
+                <label :style="{ fontSize: '0.7rem' }"> <strong> Select Manufacturer: </strong>
                     <select class="manufacturer-select" v-model="prllstore.selectedMFG">
                         <option v-for="manufacturer in prllstore.manufacturers" :value="manufacturer" 
                             :selected="(manufacturer === prllstore.selectedMFG)? true : false">{{manufacturer}}</option>
@@ -269,14 +269,14 @@ export default {
     height:100%;
     flex-direction: row;
     flex-wrap: nowrap;
-    border: 1px;
-    border-style: dashed;
+    /* border: 1px;
+    border-style: dashed; */
 }
 .chart-container{
     width: calc(100% - 5rem);
     height: 100%;
-    border: 1px;
-    border-style: dashed;
+    /* border: 1px;
+    border-style: dashed; */
 }
 
 #prll-control-container{

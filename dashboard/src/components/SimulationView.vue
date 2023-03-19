@@ -58,15 +58,17 @@ export default {
             size: { width: 0, height: 0 } as ComponentSize,
             margin: {left: 50, right: 20, top: 20, bottom: 40} as Margin,
             MFGs: ['Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS'] as string[],
-            //selectedMFG: "Seagate" as string,
-            selectedCapacity: 0 as number,
+            selectedMFG: "All" as string,
+            selectedCapacity: "" as string,
+            selectedCapacityNum:0 as number,
             capacityList:[] as any[],
             capacityListLen:1 as number,
+            capacityListLabels:{} as {},
             useMonth:36,
         }
     },
     computed: {
-        ...mapState(useParallelStore, ['selectedMFG']) // Traditional way to map the store state to the local state
+        //...mapState(useParallelStore, ['selectedMFG']) // Traditional way to map the store state to the local state
     },
     created() {
         this.getData(this.selectedMFG)
@@ -95,6 +97,13 @@ export default {
                     this.points = resp.data.data; 
                     this.clusters = resp.data.clusters;
                     this.capacityList = resp.data.capacity_clusters;
+                    const tickLabels: { [key: number]: string } = {};
+                    for (let i = 0; i < this.capacityList.length; i++) {
+                        tickLabels[i] = this.capacityList[i];
+                    }
+                    this.capacityListLabels = tickLabels
+                    console.log(this.capacityListLabels)
+                    this.selectedCapacity = this.capacityList[this.selectedCapacityNum]
                     this.capacityListLen = this.capacityList.length
                     return true;
                 })
@@ -122,10 +131,6 @@ export default {
 
 
             let clusterLabels: string[] = this.clusters
-            // if(this.capacityListLen > 1){
-            //     const capacity_string = this.capacityList[Math.min(Math.floor(this.selectedCapacity / this.capacityListLen), this.capacityListLen-1)];
-            //     clusterLabels.push(`Simulation (${capacity_string})`)
-            // }
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
             // let colorScale = d3.scaleOrdinal().domain(['All', 'Seagate', 'TOSHIBA', 'HGST', 'WDC', 'Micron', 'HP', 'Hitachi', 'DELLBOSS'] 
             //                     ).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
@@ -151,8 +156,9 @@ export default {
 
             const yScale = d3
             .scaleLinear()
-            .domain([0, d3.max(data, (d) => d.y) ?? 0])
-            //.domain([d3.min(mfg_data, (d) => d.y)*.7 ?? 0, d3.max(mfg_data, (d) => d.y) ?? 0])
+            //.domain([0, d3.max(data, (d) => d.y) ?? 0])
+            .domain([d3.min(data, (d) => d.y_lower)  as number,
+                     d3.max(data, (d) => d.y_upper)  as number])
             .range([height, 0]);
 
             const svg = d3
@@ -170,7 +176,7 @@ export default {
             .call(d3.axisBottom(xScale));
             
             svg.append("g").call(d3.axisLeft(yScale)
-                        .tickFormat(d=>d*100.0+"%")
+                        .tickFormat(d=>(d*100.0).toFixed(0)+"%")
                         );
 
             // Define the area function
@@ -186,25 +192,6 @@ export default {
                     .y((d) => yScale(d.y));
 
             for(let i = 0;i < this.clusters.length;i++){
-
-                // if(this.capacityListLen > 1){
-                //     const capacity_string = this.capacityList[Math.min(Math.floor(this.selectedCapacity / this.capacityListLen), this.capacityListLen-1)];
-                //     console.log(capacity_string)
-                //     console.log(this.clusters[i].search(capacity_string))
-                //     if(this.clusters[i].search(capacity_string) <= 0){
-                //         continue
-                //     }
-                // }
-
-            
-                // if(this.capacityListLen > 1){
-                //     let mfg_data_group;
-                //     mfg_data_group = d3.group(mfg_data, d => d.capacity);
-                //     const capacity_string = this.capacityList[Math.min(Math.floor(this.selectedCapacity / this.capacityListLen), this.capacityListLen-1)];
-                //     mfg_data = mfg_data_group.get(capacity_string) as HddLifeData[]
-                //     console.log(mfg_data)
-                // }
-
                 // Append the SVG object to the body of the page
                 let mfg_data = grouped_data.get(this.clusters[i]) as HddLifeData[]
 
@@ -224,19 +211,15 @@ export default {
                 .attr("fill", "none")
                 .attr("stroke", colorScale(clusterLabels[i]) as string)
                 .attr("stroke-width", 1.5)
-                .attr("d", line)
-                
+                .attr("d", line)      
             }
 
             // Draw Simulation
-
-
             // Append the SVG object to the body of the page
             let mfg_data
             if(this.capacityListLen > 1){
-                const capacity_string = this.capacityList[Math.min(Math.floor(this.selectedCapacity / this.capacityListLen), this.capacityListLen-1)];
                 //console.log(capacity_string)
-                mfg_data = grouped_data.get(`Simulation (${capacity_string})`) as HddLifeData[]
+                mfg_data = grouped_data.get(`Simulation (${this.selectedCapacity})`) as HddLifeData[]
 
                 // Show confidence interval
                 svg.append("path")
@@ -289,8 +272,7 @@ export default {
             }
             clusterLabels = removeDuplicates(clusterLabels)
             if(this.capacityListLen > 1){
-                const capacity_string = this.capacityList[Math.min(Math.floor(this.selectedCapacity / this.capacityListLen), this.capacityListLen-1)];
-                clusterLabels.push(`Simulation (${capacity_string})`)
+                clusterLabels.push(`Simulation (${this.selectedCapacity})`)
             }
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
             
@@ -374,7 +356,9 @@ export default {
         'useMonth'() {
             this.rerender()
         },
-        'selectedCapacity'() {
+        'selectedCapacityNum'() {
+            this.selectedCapacity = this.capacityList[this.selectedCapacityNum]
+            console.log(this.selectedCapacity)
             this.rerender()
         },
         selectedMFG(newMFG) { // function triggered when a different method is selected via dropdown menu
@@ -401,56 +385,51 @@ export default {
     <div class="control-container">
         <div>
             <p style="text-align:center;font-size:20px">HDD Failure Simulator</p>
+            <br>
         </div>
 
         <div class="radioMFG" style="">
 
+            <input type="radio" name="" id="All" value="All" v-model="selectedMFG">
+            <label for="All">All </label>
+
             <input type="radio" name="" id="Seagate" value="Seagate" v-model="selectedMFG">
-            <label for="Seagate">Seagate</label>
+            <label for="Seagate">Seagate </label>
 
             <input type="radio" name="" id="TOSHIBA" value="TOSHIBA" v-model="selectedMFG">
-            <label for="TOSHIBA">TOSHIBA</label>
+            <label for="TOSHIBA">TOSHIBA </label>
         
             <input type="radio" name="" id="HGST" value="HGST" v-model="selectedMFG">
-            <label for="HGST">HGST</label>
+            <label for="HGST">HGST </label>
 
             <input type="radio" name="" id="WDC" value="WDC" v-model="selectedMFG">
-            <label for="WDC">WDC</label>
+            <label for="WDC">WDC </label>
 
             <input type="radio" name="" id="Micron" value="Micron" v-model="selectedMFG">
-            <label for="Micron">Micron</label>
+            <label for="Micron">Micron </label>
 
             <input type="radio" name="" id="HP" value="HP" v-model="selectedMFG">
-            <label for="HP">HP</label>
+            <label for="HP">HP </label>
 
             <input type="radio" name="" id="Hitachi" value="Hitachi" v-model="selectedMFG">
-            <label for="Hitachi">Hitachi</label>
+            <label for="Hitachi">Hitachi </label>
 
             <input type="radio" name="" id="DELLBOSS" value="DELLBOSS" v-model="selectedMFG">
-            <label for="DELLBOSS">DELLBOSS</label>
+            <label for="DELLBOSS">DELLBOSS </label>
         </div>
-
+        <br>
         <v-app>
         <div>
-            <!-- <v-slider label="Capacity" v-model="slider" :value="slider" track-color="grey" always-dirty min="1" max="36" thumb-label="always"/> -->
-            <!-- <v-slider label="Capacity" v-model="selectedCapacity" :value="selectedCapacity" track-color="grey" always-dirty min="1" max="36" thumb-label/> -->
-            
-            <v-slider label="Capacity" v-model="selectedCapacity" thumb-label 
-                    show-ticks="always">
-            <template v-slot:thumb-label="{ modelValue }" >
-            {{ capacityList[Math.min(Math.floor(modelValue / capacityListLen), capacityListLen-1)] }}
-            </template>
-            </v-slider>
-
-            <!-- <v-slider
+            <v-slider
                 label="Capacity"
-           
-                :max="capacityListLen"
-                v-model="selectedCapacity"
+                v-model="selectedCapacityNum"
+                :ticks="capacityListLabels"
+                :max="capacityListLen-1"
                 step="1"
                 show-ticks="always"
                 tick-size="4"
-                ></v-slider> -->
+                class="tick-labels"
+                ></v-slider>
 
             <v-slider label="Month" v-model="useMonth" :value="useMonth" track-color="grey" 
                         always-dirty step="1" min="1" max="72" thumb-label hide-details
@@ -482,8 +461,8 @@ export default {
     height: 40%;
     width: calc(100% - 2.5rem); 
     /* for debug */
-    border: 1px;
-    border-style: dashed;
+    /* border: 1px;
+    border-style: dashed; */
     flex-direction: column;
     flex-wrap: nowrap;
 }
@@ -491,8 +470,8 @@ export default {
     height: 60%;
     width: calc(100% - 2.5rem); 
     /* for debug */
-    border: 1px;
-    border-style: dashed;
+    /* border: 1px;
+    border-style: dashed; */
     flex-direction: row;
     flex-wrap: nowrap;
 }
@@ -500,8 +479,8 @@ export default {
     height: 100%;
     width: calc(100% - 2.5rem); 
     /* for debug */
-    border: 1px;
-    border-style: dashed;
+    /* border: 1px;
+    border-style: dashed; */
     flex-direction: row;
     flex-wrap: nowrap;
 }
@@ -509,5 +488,9 @@ export default {
 .radioMFG{
     font-size: 15px;
     text-align:center;
+}
+
+.tick-labels {
+  font-size: 10px; /* Change this to the desired font size */
 }
 </style>

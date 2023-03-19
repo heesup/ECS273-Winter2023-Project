@@ -243,8 +243,8 @@ export default {
     flex-direction: row;
     flex-wrap: nowrap;
     /* for debug */
-    border: 1px;
-    border-style: dashed;
+    /* border: 1px;
+    border-style: dashed; */
 }
 .chart-container{
     width: calc(100% - 5rem);

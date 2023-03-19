@@ -8,19 +8,28 @@ from humanize import naturalsize
 from failure_detection.survival_model import make_model
 
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 from sklearn import preprocessing
 
-def perform_PCA(X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def perform_dim_reduction(X: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     scaler = preprocessing.StandardScaler()
     X = scaler.fit_transform(X)
-
-    pca = PCA(n_components=2)
-    pca.fit(X)  # Learn the projection matrix
-    Z = pca.transform(X) # Project the given data with the learnt projection matrix
-    
-    PC1, PC2 = pca.components_ # Since n_components = 2
-    PCs = np.vstack((PC1.reshape(1, -1), PC2.reshape(1, -1))) # Rows refer to each PC; Columns refer to each data attribute
-    return Z, PCs
+    if 1:
+        pca = PCA(n_components=2)
+        pca.fit(X)  # Learn the projection matrix
+        Z = pca.transform(X)[:,0:2] # Project the given data with the learnt projection matrix
+        PC1, PC2,  = pca.components_ # Since n_components = 2
+        PCs = np.vstack((PC1.reshape(1, -1), PC2.reshape(1, -1))) # Rows refer to each PC; Columns refer to each data attribute
+        # print(PCs)
+        return Z
+        # return Z, PCs
+    else:
+        scaler = preprocessing.StandardScaler()
+        X = scaler.fit_transform(X)
+        perplexity = 5
+        tsne = TSNE(n_components=2, perplexity=perplexity)
+        Z = tsne.fit_transform(X)
+        return Z
 
 def processBarChart(method: str = 'failure') -> tuple[list[dict], list[int]]:
 
@@ -39,6 +48,7 @@ def processBarChart(method: str = 'failure') -> tuple[list[dict], list[int]]:
         table = data.pivot_table( values = 'failure', index = ['MFG', 'capacity_TB'],aggfunc=len)
     elif method == 'failure':
         table = data.pivot_table( values = 'failure', index = ['MFG', 'capacity_TB'],aggfunc=np.mean)
+        table['failure'] = table['failure'] / 3 # To make annual failure rate.
     else:
         # power_on_years
         table = data.pivot_table( values = method, index = ['MFG', 'capacity_TB'],aggfunc=np.mean)
@@ -73,12 +83,13 @@ def processExample(mfg: str = 'All') -> tuple[list[dict], list[int]]:
     #feat_names: np.ndarray = data.feature_names
     target_names: np.ndarray = ["healthy","failure"]
 
-    Z, PCs = perform_PCA(X)
+
+    Z = perform_dim_reduction(X)
     
-    PC1 = list(PCs[0])
-    PC2 = list(PCs[1])
-    i1 = PC1.index(max(PCs[0]))
-    i2 = PC2.index(max(PCs[1]))
+    # PC1 = list(PCs[0])
+    # PC2 = list(PCs[1])
+    # i1 = PC1.index(max(PCs[0]))
+    # i2 = PC2.index(max(PCs[1]))
     # print(data.iloc[:,6:-1].columns[i1])
     # print(data.iloc[:,6:-1].columns[i2])
     #print(PCs)
@@ -194,7 +205,7 @@ def processKMSurvivalCurveSerialData(manufacturer):
             continue
 
         label = f"{model} ({naturalsize(model_capacity)}, {model_introduced[:4]})"
-        capacity = naturalsize(model_capacity)
+        capacity = naturalsize(model_capacity,format="%d")
         capacity_category.append(capacity)
         kmf = KaplanMeierFitter()
         kmf.fit(grouped_df['duration'] / YEARS, grouped_df['failure'])
@@ -227,7 +238,8 @@ dataset = filter_dataset(dataset)
 
 if __name__ == "__main__":
     # For debugging
-    # processExample()
+    #processExample()
     #processBarChart()
     #processExample("Seagate")
     processKMSurvivalCurveSerialData("Seagate")
+    
