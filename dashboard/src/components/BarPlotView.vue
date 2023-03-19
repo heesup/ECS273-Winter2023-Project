@@ -89,12 +89,19 @@ export default {
                 .range([this.store.size.height - this.store.margin.bottom, this.store.margin.top])
                 .domain(yExtents)
 
-
-            const yAxis = chartContainer.append('g')
+            if(this.store.selectedMethod =='failure'){
+                const yAxis = chartContainer.append('g')
                 .attr('transform', `translate(${offsetX}, ${0})`)
                 .call(d3.axisLeft(yScale)
-                    //.tickFormat(function(d){ return " $" + d})
+                .tickFormat(d => (d*100).toFixed(0) + "%")
                 )
+            }else{
+                const yAxis = chartContainer.append('g')
+                .attr('transform', `translate(${offsetX}, ${0})`)
+                .call(d3.axisLeft(yScale)
+                )
+            
+            }
                 
 
             //그래프 그리기
@@ -121,27 +128,6 @@ export default {
                 .selectAll("#barNum")
                 .data(this.store.clusters)
 
-            // textElements.enter()
-            //     .append("text")
-            //     .attr("class", "barNum")
-            //     .attr("x", function (d, i) {
-            //         return i * 6 + 10 + interval + offsetX;    // 막대그래프 표시간격 맞춤 // updated offsetX
-            //     })
-            //     .attr("y", svgHeight - 5) //updated offsetY
-            //     .text(function (d, i) {
-            //         return d[0]; // 제조사 표시
-            //     })
-            //     .style('font-size', '.5rem')
-            //     .style('text-anchor', 'start')
-            //     .exit()
-
-            //가로방향 선을 표시
-
-            // d3.select("#bar-svg").append("rect")
-            //     .attr("class", "axis_x")
-            //     .attr("width", 320)
-            //     .attr("height", 1)
-            //     .attr("transform", "translate(" + offsetX + ", " + ((svgHeight) - offsetY) + ")")
 
             const xAxis = chartContainer.append('g')
                 .attr("class", "x axis")
@@ -155,7 +141,7 @@ export default {
                 .selectAll("text")
                 .attr("y", 10)
                 .attr("x", 0)
-                //.attr("dy", ".35em")
+                .attr("dy", ".35em")
                 .style('font-size', '.4rem')
                 //.attr("transform", "rotate(-45)")
                 .style("text-anchor", "center");
@@ -169,6 +155,13 @@ export default {
                 .attr('transform', `translate(${(this.store.size.width + this.store.margin.left) / 2 }, ${this.store.size.height - 15})`)
                 .append('text')
                 .text('Capacity')
+                .style('font-size', '.5rem')
+                .style('text-anchor', 'middle')
+
+                const yLabel = chartContainer.append('g')
+                .attr('transform', `translate(${this.store.margin.left-30}, ${this.store.size.height / 2 - this.store.margin.top}) rotate(-90)`)
+                .append('text')
+                .text(this.selectedMethod)
                 .style('font-size', '.5rem')
                 .style('text-anchor', 'middle')
 

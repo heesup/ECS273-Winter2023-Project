@@ -399,7 +399,7 @@ export default {
 <!-- "ref" registers a reference to the HTML element so that we can access it via the reference in Vue.  -->
 <!-- We use flex to arrange the layout-->
 <template>
-    <div class="control-container">
+    <div class="sim_control-container">
         <div>
             <p style="text-align:center;font-size:20px">HDD Failure Simulator</p>
         </div>
@@ -415,17 +415,17 @@ export default {
             <input type="radio" name="" id="TOSHIBA" value="TOSHIBA" v-model="selectedMFG">
             <label for="TOSHIBA">TOSHIBA </label>
         
-            <input type="radio" name="" id="HGST" value="HGST" v-model="selectedMFG">
-            <label for="HGST">HGST </label>
+            <!-- <input type="radio" name="" id="HGST" value="HGST" v-model="selectedMFG">
+            <label for="HGST">HGST </label> -->
 
             <input type="radio" name="" id="WDC" value="WDC" v-model="selectedMFG">
-            <label for="WDC">WDC </label>
+            <label for="WDC">WDC & HGST </label>
 
             <input type="radio" name="" id="Micron" value="Micron" v-model="selectedMFG">
             <label for="Micron">Micron </label>
 
-            <input type="radio" name="" id="HP" value="HP" v-model="selectedMFG">
-            <label for="HP">HP </label>
+            <!-- <input type="radio" name="" id="HP" value="HP" v-model="selectedMFG">
+            <label for="HP">HP </label> -->
 
             <input type="radio" name="" id="Hitachi" value="Hitachi" v-model="selectedMFG">
             <label for="Hitachi">Hitachi </label>
@@ -458,8 +458,8 @@ export default {
         </v-app>
     </div>
 
-    <div class="vis-container d-flex" > 
-        <div class="chart-container d-flex" ref="simulationContainer">
+    <div class="sim_vis-container d-flex" > 
+        <div class="sim_chart-container d-flex" ref="simulationContainer">
                 <!-- <img src="src/components/Screenshot 2023-03-14 at 1.37.43 PM.png" width="475"> -->
             <svg id="simulation-svg" width="100%" height="100%">
                 <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
@@ -476,7 +476,7 @@ export default {
 </template>
 
 <style scoped>
-.control-container{
+.sim_control-container{
     height: 40%;
     width: calc(100% - 2.5rem); 
     /* for debug */
@@ -485,7 +485,7 @@ export default {
     flex-direction: column;
     flex-wrap: nowrap;
 }
-.vis-container{
+.sim_vis-container{
     height: 60%;
     width: calc(100% - 2.5rem); 
     /* for debug */
@@ -494,7 +494,7 @@ export default {
     flex-direction: row;
     flex-wrap: nowrap;
 }
-.chart-container{
+.sim_chart-container{
     height: 100%;
     width: calc(100% - 2.5rem); 
     /* for debug */
