@@ -171,12 +171,16 @@ export default {
             .domain([0, this.useMonth/12])
             .range([0, width]);
 
-            const yScale = d3
-            .scaleLinear()
-            //.domain([0, d3.max(data, (d) => d.y) ?? 0])
-            .domain([d3.min(data, (d) => d.y_lower)  as number,
-                     d3.max(data, (d) => d.y_upper)  as number])
-            .range([height, 0]);
+            let yScale = d3.scaleLinear();
+            if(this.selectedMFG ==='All'){
+                yScale.domain([0.6  as number,
+                        d3.max(data, (d) => d.y_upper)  as number])
+                        .range([height, 0]);
+            }else{
+                yScale.domain([d3.min(data, (d) => d.y_lower)  as number,
+                            d3.max(data, (d) => d.y_upper)  as number])
+            }
+            yScale.range([height, 0]);
 
             const svg = d3
                     .select("#simulation-svg")
@@ -447,12 +451,12 @@ export default {
                 :disabled="capacityListLen===0"
                 ></v-slider>
 
-            <!-- <v-slider label="Month" v-model="useMonth" :value="useMonth" track-color="grey" 
-                        always-dirty step="1" min="1" :max="life_exp*12" thumb-label hide-details
-                        /> -->
             <v-slider label="Month" v-model="useMonth" :value="useMonth" track-color="grey" 
-                    always-dirty step="1" min="1" max="72" thumb-label hide-details
+                        always-dirty step="1" min="1" :max="life_exp*12" thumb-label hide-details
                         />
+            <!-- <v-slider label="Month" v-model="useMonth" :value="useMonth" track-color="grey" 
+                    always-dirty step="1" min="1" max="72" thumb-label hide-details
+                        /> -->
         </div>
         <div style="text-align: center;"> {{ life_exp_str }}</div>
         </v-app>
