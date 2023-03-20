@@ -294,8 +294,7 @@ export default {
     border-style: dashed; */
     border: 1px solid;
     border-radius: 10px;
-    overflow-y: auto;
-    border-color: dimgray;
+    border-color: rgb(0, 0, 0);
 }
 
 .chart-container{
