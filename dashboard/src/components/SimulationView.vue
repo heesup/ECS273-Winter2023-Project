@@ -271,17 +271,17 @@ export default {
            
             
             const xLabel = chartContainer.append('g')
-                .attr('transform', `translate(${(this.size.width+this.margin.left) / 2}, ${this.size.height - 15})`)
+                .attr('transform', `translate(${(this.size.width+this.margin.left) / 2}, ${this.size.height - 10})`)
                 .append('text')
                 .text('Years')
-                .style('font-size', '.5rem')
+                .style('font-size', '.7rem')
                 .style('text-anchor', 'middle')
 
             const yLabel = chartContainer.append('g')
                 .attr('transform', `translate(${this.margin.left-35}, ${(this.size.height-this.margin.top) / 2}) rotate(-90)`)
                 .append('text')
                 .text('Survival %')
-                .style('font-size', '.5rem')
+                .style('font-size', '.7rem')
                 .style('text-anchor', 'middle')
 
 
@@ -469,10 +469,8 @@ export default {
                 <!-- all the visual elements we create in initChart() will be inserted here in DOM-->
             </svg>
         </div>
-
             <svg id="sim-legend-svg" width="40%" height="100%">
             </svg>
-     
     </div>
     
     
