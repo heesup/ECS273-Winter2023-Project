@@ -18,10 +18,10 @@ export default {
 <!--This is using the grid component from Vuetify to do layout design-->
 <template>
   <v-container id="main-container" class="d-flex flex-column flex-nowrap" fluid>
-  <v-row no-gutters>
+  <v-row >
     <v-col cols="">
       <!-- <v-row no-gutters> -->
-      <v-row style="height: 40vh" no-gutters>
+      <v-row style="height: 40vh" >
         <v-col cols="" offset="">
           <ScatterPlotView/>
         </v-col>
@@ -40,16 +40,13 @@ export default {
     </v-col>
     
     <v-col cols="" offset="3">
-      <v-row no-gutters>
-        <v-col style="height: 90vh" >
+      <v-row>
+        <v-col style="height: 90vh">
           <SimulationView/>
         </v-col>
       </v-row>
     </v-col>
   </v-row>
-  
-
-
   </v-container>
 </template>
 

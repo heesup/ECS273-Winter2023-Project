@@ -292,6 +292,10 @@ export default {
     /* for debug */
     /* border: 1px;
     border-style: dashed; */
+    border: 1px solid;
+    border-radius: 10px;
+    overflow-y: auto;
+    border-color: dimgray;
 }
 
 .chart-container{

@@ -64,7 +64,7 @@ export default {
                 .domain(yExtents)
 
             let clusters: string[] = this.ex_store.clusters.map((cluster: string, idx: number) => String(idx))
-            let colorScale = d3.scaleOrdinal().domain(clusters).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
+            //let colorScale = d3.scaleOrdinal().domain(clusters).range(d3.schemeTableau10) // d3.schemeTableau10: string[]
 
             const points = chartContainer.append('g')
                 .selectAll('circle')
@@ -73,7 +73,13 @@ export default {
                 .attr('cx', (d: ScatterPoint) => xScale(d.posX))
                 .attr('cy', (d: ScatterPoint) => yScale(d.posY))
                 .attr('r', 2)
-                .style('fill', (d: ScatterPoint) => colorScale(String(d.cluster)) as string)
+                .style('fill', function (d: ScatterPoint){
+                            if(String(d.cluster) === "0"){
+                                return 'green'
+                            }else{
+                                return 'red'
+                            }
+                        })
                 .style('opacity', .7)
 
             const title = chartContainer.append('g')
@@ -122,7 +128,7 @@ export default {
             //let clusterLabels: string[] = this.clusters.map((cluster: string, idx: number) => `Cultivar ${idx+1}`)
             let clusterLabels: string[] = this.ex_store.clusters.map((cluster: string, idx: number) => `${cluster}`)
             let colorScale = d3.scaleOrdinal().domain(clusterLabels).range(d3.schemeTableau10)
-
+            //let colorScale = {0:"green",1:"red"}
             const rectSize = 12;
             const titleHeight = 20;
 
@@ -139,7 +145,14 @@ export default {
                     select.append('rect')
                         .attr('width', rectSize).attr('height', rectSize)
                         .attr('x', 5).attr('y', (d: string, idx: number) => idx * rectSize * 1.5)
-                        .style('fill', (d: string) => colorScale(d) as string)
+                        .style('fill', function (d: string){
+                            if(d === 'healthy'){
+                                return 'green'
+                            }else{
+                                return 'red'
+                            }
+                        })
+                        //.style('fill', (d: string) => colorScale(d) as string)
 
                     select.append('text')
                         .text((d: string) => d)
@@ -245,6 +258,10 @@ export default {
     /* for debug */
     /* border: 1px;
     border-style: dashed; */
+    border: 1px solid;
+    border-radius: 10px;
+    overflow-y: auto;
+    border-color: dimgray;
 }
 .chart-container{
     width: calc(100% - 5rem);

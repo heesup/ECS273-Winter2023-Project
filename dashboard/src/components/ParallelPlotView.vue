@@ -271,6 +271,10 @@ export default {
     flex-wrap: nowrap;
     /* border: 1px;
     border-style: dashed; */
+    border: 1px solid;
+    border-radius: 10px;
+    overflow-y: auto;
+    border-color: dimgray;
 }
 .chart-container{
     width: calc(100% - 5rem);
